@@ -1,6 +1,7 @@
 class Filter:
     """
-    Base class for filters. Valid criteria include any object attribute
+    Base class for filters. Valid criteria include any object attribute.
+    You can also pass arbitrary callables as long as they take an object as argument and return True or False
     """
 
     def __init__(self, **criteria):
@@ -36,9 +37,7 @@ class Filter:
 class TxFilter(Filter):
     """
     Base class for transaction filters.
-    Transaction filters accept any number of criteria.
     Valid criteria include any Tx object attribute plus few other.
-    You can also pass arbitrary callables as long as they take a Tx object as argument and return True or False
     """
 
     def match_txid(self, tx):
