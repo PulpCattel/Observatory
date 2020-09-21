@@ -9,7 +9,8 @@ Should be fairly easy to make it work on Windows or Mac but I have no experience
 
 * [Bitcoin Knots](https://bitcoinknots.org/).
 This is required cause Knots offers `getblock` verbosity 3.
-Knots will work right out of the box with your `.bitcoin` data folder, so you can effortlessly switch between Bitcoin Core and Bitcoin Knots.
+Knots will work right out of the box with your `.bitcoin` data folder, so you can effortlessly switch between Bitcoin Core and Bitcoin Knots.  
+The full node can be pruned, although this will limit the scan possibilities only to the stored blocks.
 
 * Python 3.7+ (should be already installed with most Linux distros).
 
