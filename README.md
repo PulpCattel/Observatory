@@ -34,9 +34,10 @@ Open a terminal from the Observatory folder and run `sudo apt install python3-pi
 If you are in doubt between the two ways, you should try to use the virtualenv installation, this way you will keep you base system clean.
 If you decide to go for it, remember that you'll have to run `source .env/bin/activate` as first command each time that you want to use the Observatory (check for `(.env)` at the beginning of the lines in your terminal).
 
-
-Last thing is to set your RPC login credentials.
+Next, set your RPC login credentials.
 Open the `settings.py` file and edit `rpc_user` and `rpc_password` so that they match whatever you have in your `bitcoin.conf` file.
+
+Lastly, activate the RPC server from your full node adding `server = 1` to your `bitcoin.conf` file.
 
 ## Usage
 
