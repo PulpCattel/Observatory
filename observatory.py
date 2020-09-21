@@ -116,8 +116,7 @@ async def create_dataframe(start, end, *filters, force=False):
             end = start + abs(end) - 1 if start + abs(end) - 1 <= block_count else block_count
     if info['pruned']:
         if end < info['pruneheight']:
-            error_msg = f'End block height is lower than the lowest-height complete block stored '
-            '({info["pruneheight"]})'
+            error_msg = f'End block height is lower than the lowest-height complete block stored ({info["pruneheight"]})'
             print_error('Invalid `end`', error_msg)
             logger.error(error_msg)
             await rpc_client.close()
@@ -126,9 +125,9 @@ async def create_dataframe(start, end, *filters, force=False):
             if force:
                 start = info['pruneheight']
             else:
-                error_msg = f'Start block height is lower than the lowest-height complete block stored '
-                '({info["pruneheight"]}), if you want to scan anyway starting from lowest available height '
-                'add argument `force=True`'
+                error_msg = 'Start block height is lower than the lowest-height complete block stored ' \
+                            f'({info["pruneheight"]}), if you want to scan anyway starting from lowest available height ' \
+                            'add argument `force=True`'
                 print_error('Invalid `start`', error_msg)
                 logger.error(error_msg)
                 await rpc_client.close()
