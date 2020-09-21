@@ -46,4 +46,7 @@ Run [JupyterLab](https://jupyterlab.readthedocs.io/en/stable/) from a terminal w
 JupyterLab will open in your browser, ready to use.
 If you are not familiar with Python and/or JupyterLab, you should start checking out the `Quickstart.ipynb`.
 
+:point_right: Activate JupyterLab dark theme for the ultimate experience.
+`Settings` > `JupyterLab Theme` > `JupyterLab Dark`
+
 Enjoy!
