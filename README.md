@@ -1,6 +1,8 @@
 # Observatory
 
-DIY Bitcoin observatory with basic block explorer capabilities meant to be easy to use and lightweight. 
+DIY Bitcoin observatory with basic block explorer capabilities meant to be easy to use and lightweight.
+
+Give a look at the [Observatory template](Observatory_template.ipynb) to have an idea of how it's structured.
 
 ## Requirements
 
