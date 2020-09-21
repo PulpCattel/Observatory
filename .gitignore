@@ -1,0 +1,8 @@
+*__pycache__
+*.pytest_cache
+*.pyc
+*.env
+*.pytest_cache
+*.ipynb_checkpoints
+*.ftr
+*log.txt
