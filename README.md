@@ -2,7 +2,7 @@
 
 DIY Bitcoin observatory with basic block explorer capabilities meant to be easy to use and lightweight.
 
-Give a look at the [Observatory template](Observatory_template.ipynb) to have an idea of how it's structured.
+Give a look at the [Observatory template](Observatory_template.ipynb) or the [examples](https://github.com/PulpCattel/Observatory/tree/master/examples) to have an idea of how it's structured.
 
 ## Requirements
 
