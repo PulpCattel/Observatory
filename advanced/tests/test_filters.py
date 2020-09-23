@@ -95,12 +95,12 @@ def test_match_out_type():
     assert f.match(same_output_type_tx)
 
 
-def test_functions_criteria():
-    def test_function(tx):
+def test_callables():
+    def mycallable(tx):
         if tx.vsize + tx.weight == 837:
             return True
         return False
 
-    f = filters.TxFilter(callables=[test_function])
+    f = filters.TxFilter(callables=[mycallable])
     assert f.match(simple_tx)
     assert not f.match(coinbase_tx)
