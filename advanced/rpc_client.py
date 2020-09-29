@@ -1,5 +1,6 @@
-import aiohttp
 import asyncio
+
+import aiohttp
 
 
 class RpcError(Exception):
@@ -69,10 +70,11 @@ class RpcClient:
     @classmethod
     async def get_client(cls, session=None, endpoint='', user='', pwd=''):
         if not session:
-            timeout = aiohttp.ClientTimeout(total=0)
-            headers = {'content-type': 'application/json'}
-            auth = aiohttp.BasicAuth(user, pwd)
-            session = aiohttp.ClientSession(headers=headers, auth=auth, timeout=timeout)
+            session = aiohttp.ClientSession(
+                headers={'content-type': 'application/json'},
+                auth=aiohttp.BasicAuth(user, pwd),
+                timeout=aiohttp.ClientTimeout(total=0)
+            )
         if not endpoint:
             endpoint = 'http://127.0.0.1:8332/'
         return cls(session, endpoint)
