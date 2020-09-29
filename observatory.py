@@ -92,7 +92,11 @@ async def create_dataframe(start, end, *filters, force=False):
                 raise MemoryError(f'Running out of memory (total: {bytes2human(mem.total)}, used {mem.percent}%)')
             return await scan(blockheight)
 
-    rpc_client = await RpcClient.get_client(user=settings['rpc_user'], pwd=settings['rpc_password'])
+    rpc_client = await RpcClient.get_client(
+        user=settings['rpc_user'],
+        pwd=settings['rpc_password'],
+        endpoint=settings['rpc_endpoint'],
+    )
     rpc_client.add_methods('getblockhash', 'getblock', 'getblockstats', 'getblockchaininfo')
     try:
         info = await rpc_client.getblockchaininfo()
