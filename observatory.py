@@ -265,17 +265,18 @@ def show_tx(df, txid, display_all=False):
     if not txid:
         print_error('Empty txid', 'Nothing to search, please provide a `txid`')
         return
-    tx = df[df.index.str.contains(txid)]
-    if tx.empty:
+    txs = df[df.index.str.contains(txid)]
+    if txs.empty:
         print_error('Txid not found', f'Transaction **{txid}** is not in the dataframe')
         return
     with option_context('display.max_rows', None if display_all else get_option('display.max_rows'),
                         'display.max_colwidth', None):
-        display(tx[[column for column in df.columns if column not in ['inputs', 'outputs']]])
+        display(txs[[column for column in df.columns if column not in ['inputs', 'outputs']]])
         display_markdown('### Inputs', raw=True)
-        display(DataFrame(tx_input for tx_inputs in tx.inputs for tx_input in tx_inputs))
+        input_df = DataFrame(tx_input for tx_inputs in txs.inputs for tx_input in tx_inputs)
+        display(input_df.assign(available=input_df['txid'].isin(df.index)))
         display_markdown('### Outputs', raw=True)
-        display(DataFrame(tx_output for tx_outputs in tx.outputs for tx_output in tx_outputs).set_index('vout'))
+        display(DataFrame(tx_output for tx_outputs in txs.outputs for tx_output in tx_outputs).set_index('vout'))
     return
 
 
