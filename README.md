@@ -9,6 +9,8 @@ Current examples, from block 646201 to 650731 included (September 2020):
 * [Wasabi wallet](https://github.com/zkSNACKs/WalletWasabi) like CoinJoin transactions.
 * [JoinMarket](https://github.com/JoinMarket-Org/joinmarket-clientserver) like CoinJoin transactions.
 
+To have a better view of the IPython notebook (.ipynb) files you can copy their GitHub URL to https://nbviewer.jupyter.org
+
 ## Requirements
 
 * Linux only, tested on Ubuntu and Debian.
