@@ -219,7 +219,7 @@ def load(filepath):
         print_error('Permission error', f'Permission denied for `{filepath}`')
         return
     except FileNotFoundError:
-        print_error('Filepath not found', f'Given filepath `{filepath}.pkl` not found')
+        print_error('Filepath not found', f'Given filepath `{filepath}.ftr` not found')
         return
     except Exception as e:
         print_error('Something went wrong', str(e))
