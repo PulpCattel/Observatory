@@ -111,10 +111,13 @@ class JoinmarketTxFilter(CjTxFilter):
     At least N inputs
     Either N or N-1 additional outputs of size different from the N equal outputs.
     At least 10k satoshis as denomination
+    Inputs type 'scripthash' (P2SH)
+    Outputs type either all P2SH or all P2SH but one and the different one has to be an equal output
     """
 
     def __init__(self, **criteria):
         super().__init__(**criteria)
+        self.criteria['in_type'] = 'scripthash'
         if 'callables' in self.criteria:
             if match_joinmarket not in self.criteria['callables']:
                 self.criteria['callables'].append(match_joinmarket)
@@ -164,4 +167,12 @@ def match_joinmarket(tx):
         return False
     if not tx.n_in >= tx.n_eq:
         return False
+    warning = 0
+    for tx_out in tx.outputs:
+        if tx_out.type != 'scripthash':
+            if tx_out.value != tx.den:
+                return False
+            if warning:
+                return False
+            warning = 1
     return True
