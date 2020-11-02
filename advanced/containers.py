@@ -55,7 +55,7 @@ class Tx(Container):
         if self.abs_fee < 0:
             # It's coinbase transaction
             self.abs_fee = 0
-        self.rel_fee = round(self.abs_fee * 1e8 / self.vsize, 2) if self.abs_fee else 0
+        self.rel_fee = round(self.abs_fee * 1e8 / self.vsize, 1) if self.abs_fee else 0
         self.height = blockheight
         self.date = dt.utcfromtimestamp(date).strftime('%Y-%m-%d %H:%M')
         return
