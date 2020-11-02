@@ -171,9 +171,9 @@ async def create_dataframe(start, end, *filters, force=False):
                     'outputs': [[out.dict for out in lst] for lst in outputs],
                     'n_out': np.array(n_outs, dtype='uint16'),
                     'n_eq': np.array(n_eqs, dtype='uint16'),
-                    'den': np.array(dens, dtype='float32'),
-                    'abs_fee': np.array(abs_fees, dtype='float32'),
-                    'rel_fee': np.array(rel_fees, dtype='float16'),
+                    'den': np.array(dens, dtype='float64'),
+                    'abs_fee': np.array(abs_fees, dtype='float64'),
+                    'rel_fee': np.array(rel_fees, dtype='float64'),
                     'height': np.array(heights, dtype='uint32'),
                     'date': np.array(dates, dtype='datetime64')})
 
