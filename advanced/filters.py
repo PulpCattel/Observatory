@@ -107,17 +107,23 @@ class JoinmarketTxFilter(CjTxFilter):
     """
     Custom made filter for scanning JoinMarket like CoinJoin transactions.
     Criteria:
-    N equal sized outputs where N >=3
+    N equal sized outputs where N >=3 and N < 41
     At least N inputs
-    Either N or N-1 additional outputs of size different from the N equal outputs.
+    Either N or N-1 additional outputs of size different from the N equal outputs
     At least 10k satoshis as denomination
-    Inputs type 'scripthash' (P2SH)
-    Outputs type either all P2SH or all P2SH but one and the different one has to be an equal output
+    Inputs type 'scripthash' (P2SH) or 'witness_v0_keyhash' (bech32)
+    Outputs type either all P2SH/bech32 or all P2SH/bech32 but one and the different one has to be an equal output
     """
 
     def __init__(self, **criteria):
         super().__init__(**criteria)
-        self.criteria['in_type'] = 'scripthash'
+        # This is used mostly to eliminate Wasabi CoinJoins that match also
+        # JoinMarket criteria. Since it is difficult/impossible to coordinate
+        # such enourmous CoinJoin through IRC, this should not hide any real
+        # JoinMarket transaction.
+        # Few small Wasabi CoinJoins will of course still pass through, but
+        # they should be rare and small enough to not poison the results.
+        self.criteria['n_eq'] = (3, 40)
         if 'callables' in self.criteria:
             if match_joinmarket not in self.criteria['callables']:
                 self.criteria['callables'].append(match_joinmarket)
@@ -168,8 +174,15 @@ def match_joinmarket(tx):
     if not tx.n_in >= tx.n_eq:
         return False
     warning = 0
+    # Remove 'scripthash' when P2SH inevitably gets obsolated.
+    if tx.inputs[0].type not in ['scripthash', 'witness_v0_keyhash']:
+        return False
+    tx_type = tx.inputs[0].type
+    for tx_input in tx.inputs[1:]:
+        if tx_input.type != tx_type:
+            return False
     for tx_out in tx.outputs:
-        if tx_out.type != 'scripthash':
+        if tx_out.type != tx_type:
             if tx_out.value != tx.den:
                 return False
             if warning:
