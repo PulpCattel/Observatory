@@ -4,7 +4,7 @@ DIY Bitcoin observatory with basic block explorer capabilities meant to be easy 
 
 Give a look at the [Observatory template](Observatory_template.ipynb) or the [examples](https://github.com/PulpCattel/Observatory/tree/master/examples) to have an idea of how it's structured.
 
-Current examples, from block 654933 to 659398 included (November 2020):
+Current examples, from block 659399 to 663912 included (December 2020):
 
 * [Wasabi wallet](https://github.com/zkSNACKs/WalletWasabi) like CoinJoin transactions.
 * [JoinMarket](https://github.com/JoinMarket-Org/joinmarket-clientserver) like CoinJoin transactions.
