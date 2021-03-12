@@ -1,7 +1,7 @@
 import argparse
+import logging
 import sys
 from time import time
-import logging
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -322,20 +322,20 @@ def show_graph(df, column, filepath=''):
 def show_volume(df, filepath=''):
     if df.empty:
         print_error('Empty dataframe', 'Cannot plot empty dataframe')
-    inputs_vol = 0
-    inputs_sums = []
-    eq_vol = 0
-    eq_sums = []
+    inputs_vol: float = 0.0
+    inputs_sums: List[float] = []
+    eq_vol: float = 0
+    eq_sums: List[float] = []
     for tx_inputs, tx_outputs in zip(df['inputs'], df['outputs']):
         for tx_input in tx_inputs:
-            inputs_vol += tx_input['value']
+            inputs_vol += tx_input['value'] / 1e8
         inputs_sums.append(inputs_vol)
 
         output_values = (tx_output["value"] for tx_output in tx_outputs)
         sizes_count = Counter(output_values)
         for size, count in sizes_count.items():
             if count > 1:
-                eq_vol += (size * count)
+                eq_vol += (size / 1e8 * count)
         eq_sums.append(eq_vol)
     display_markdown(f'**Input** volume: {round(inputs_vol, 8)}', raw=True)
     display_markdown(f'**Equal output** volume: {round(eq_vol, 8)}', raw=True)
