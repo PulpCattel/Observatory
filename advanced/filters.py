@@ -202,11 +202,12 @@ class CjFilter(TxFilter):
     Criteria:
     Number equal outputs >= 3
     Number inputs >= 3
-    At least 10k satoshi as denomination
     """
 
     def __init__(self, **criteria):
-        super().__init__(n_eq=(3, 10000), n_in=(3, 10000), den=(10000, 21 * 1e6), **criteria)
+        super().__init__(n_eq=(3, 10000),
+                         n_in=(3, 10000),
+                         **criteria)
 
 
 class WasabiFilter(TxFilter):
@@ -225,64 +226,56 @@ class WasabiFilter(TxFilter):
                          den=(8900000, 11000000),
                          in_type='witness_v0_keyhash',
                          out_type='witness_v0_keyhash',
-                         **criteria,
-                         )
+                         **criteria)
 
 
 class JoinmarketFilter(TxFilter):
     """
     Custom made filter to scan for JoinMarket like CoinJoin transactions.
     Criteria:
-    N equal sized outputs where N >=3 and N < 41
+    N equal sized outputs where N >=3 and N <= 40
     At least N inputs
     Either N or N-1 additional outputs of size different from the N equal outputs
-    At least 10k satoshis as denomination
     Inputs type 'scripthash' (P2SH) or 'witness_v0_keyhash' (bech32)
     Outputs type either all P2SH/bech32 or all P2SH/bech32 but one and the different one has to be an equal output
     """
 
     def __init__(self, **criteria):
-        super().__init__(n_eq=(3, 40),
-                         den=(10000, 21 * 1e6),
+        super().__init__(joinmarket=True,
                          **criteria,
                          )
 
+    @staticmethod
+    def match_joinmarket(tx: Tx) -> bool:
+        # Cache n_eq
+        n_eq: int = tx.n_eq
         # Number of equal output is capped to 40 mostly to eliminate Wasabi CoinJoins that match also
         # JoinMarket criteria. Since it is difficult/impossible to coordinate
         # such enourmous CoinJoin through IRC, this should not hide any real
         # JoinMarket transaction.
         # Few small Wasabi CoinJoins will of course still pass through, but
         # they should be rare and small enough to not poison the results.
-
-        def match_joinmarket(tx: Tx) -> bool:
-            """
-            Function for criteria callables
-            """
-            if not (tx.n_out in [tx.n_eq * 2, tx.n_eq * 2 - 1]):
+        if not 3 <= n_eq <= 40:
+            return False
+        if not (tx.n_out in [n_eq * 2, n_eq * 2 - 1]):
+            return False
+        if not tx.n_in >= n_eq:
+            return False
+        # Only one equal output can have different type, we track it with this warning
+        warning: int = 0
+        # Remove 'scripthash' when P2SH inevitably gets obsolated.
+        if tx.inputs[0].type not in ['scripthash', 'witness_v0_keyhash']:
+            return False
+        tx_type: str = tx.inputs[0].type
+        for tx_input in tx.inputs[1:]:
+            if tx_input.type != tx_type:
                 return False
-            if not tx.n_in >= tx.n_eq:
-                return False
-            # Only one equal output can have different type, we track it with this warning
-            warning: int = 0
-            # Remove 'scripthash' when P2SH inevitably gets obsolated.
-            if tx.inputs[0].type not in ['scripthash', 'witness_v0_keyhash']:
-                return False
-            tx_type: str = tx.inputs[0].type
-            for tx_input in tx.inputs[1:]:
-                if tx_input.type != tx_type:
+        for tx_out in tx.outputs:
+            if tx_out.type != tx_type:
+                if tx_out.value != tx.den:
                     return False
-            for tx_out in tx.outputs:
-                if tx_out.type != tx_type:
-                    if tx_out.value != tx.den:
-                        return False
-                    if warning:
-                        return False
-                    # Found a different equal output type
-                    warning += 1
-            return True
-
-        if 'callables' in self.criteria:
-            if match_joinmarket not in self.criteria['callables']:
-                self.criteria['callables'].append(match_joinmarket)
-        else:
-            self.criteria['callables'] = [match_joinmarket]
+                if warning:
+                    return False
+                # Found a different equal output type
+                warning += 1
+        return True
