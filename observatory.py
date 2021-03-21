@@ -1,9 +1,11 @@
-import argparse
-import logging
-import sys
+from asyncio import Semaphore, create_task, as_completed, all_tasks, run, CancelledError
+from argparse import ArgumentParser
+from collections import Counter
 from time import time
+from typing import List
 
-import matplotlib.pyplot as plt
+from aiohttp import ClientConnectionError, ClientResponseError
+from matplotlib.pyplot import plot_date, plot, legend, savefig, style, subplots
 import numpy as np
 from IPython.display import display_markdown, display
 from pandas import DataFrame, read_feather, option_context, get_option
@@ -11,34 +13,19 @@ from psutil import virtual_memory
 from psutil._common import bytes2human
 from tqdm import tqdm
 
-from advanced.containers import *
-from advanced.rpc_client import *
+from advanced.obs_utils import get_logger, print_error, parse_start_and_end
+from advanced.containers import Tx
+from advanced.rpc_client import RpcClient
 from settings import settings
 
-logger = logging.getLogger(__name__)
-f_handler = logging.FileHandler('log.txt')
-if not settings['logging']:
-    logging.disable(sys.maxsize)
-elif settings['logging'].lower() == 'info':
-    logger.setLevel(logging.INFO)
-    f_handler.setLevel(logging.INFO)
-f_format = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-f_handler.setFormatter(f_format)
-logger.addHandler(f_handler)
-
-plt.style.use('fivethirtyeight')
-
-
-def print_error(title, message):
-    display_markdown(f'#### {title}:', raw=True)
-    display_markdown(message, raw=True)
-    return
+style.use('fivethirtyeight')
 
 
 # MAIN
 async def create_dataframe(start, end, *filters, force=False):
     start_time = time()
-    semaphore = asyncio.Semaphore(settings['scan_limit'])
+    semaphore = Semaphore(settings['scan_limit'])
+    logger = get_logger(settings['logging'], __name__)
 
     txids = []
     versions = []
@@ -100,48 +87,27 @@ async def create_dataframe(start, end, *filters, force=False):
     rpc_client.add_methods('getblockhash', 'getblock', 'getblockstats', 'getblockchaininfo')
     try:
         info = await rpc_client.getblockchaininfo()
-    except aiohttp.ClientConnectionError:
+    except ClientConnectionError:
         logger.error('Connection error', exc_info=True)
         print_error('Connection error', 'Cannot establish connection with Bitcoin Knots')
         await rpc_client.close()
         return
-    except aiohttp.ClientResponseError:
+    except ClientResponseError:
         logger.error('Response error', exc_info=True)
         print_error('Response error', 'Invalid RPC credentials')
         await rpc_client.close()
         return
-    if start < 0:
-        block_count = (info['blocks'])
-        if not end:
-            end = block_count
-            start = end + start + 1
-        else:
-            start = block_count + start + 1
-            end = start + abs(end) - 1 if start + abs(end) - 1 <= block_count else block_count
-    if info['pruned']:
-        if end < info['pruneheight']:
-            error_msg = f'End block height is lower than the lowest-height complete block stored ({info["pruneheight"]})'
-            print_error('Invalid `end`', error_msg)
-            logger.error(error_msg)
-            await rpc_client.close()
-            return
-        if start < info['pruneheight']:
-            if force:
-                start = info['pruneheight']
-            else:
-                error_msg = 'Start block height is lower than the lowest-height complete block stored ' \
-                            f'({info["pruneheight"]}), if you want to scan anyway starting from lowest available height ' \
-                            'add argument `force=True`'
-                print_error('Invalid `start`', error_msg)
-                logger.error(error_msg)
-                await rpc_client.close()
-                return
-    logger.info(f'Creating dataframe... start {start} end {end}')
-    tasks = (asyncio.create_task(sem_scan(blockheight)) for blockheight in range(start, end + 1))
+    start, end = parse_start_and_end(start, end, info, force)
+    if not start:
+        return
+    start_msg = f'Start scanning from block **{start}** to block **{end}** included...'
+    logger.info(start_msg)
+    display_markdown(start_msg, raw=True)
+    tasks = (create_task(sem_scan(blockheight)) for blockheight in range(start, end + 1))
     try:
-        for coro in tqdm(asyncio.as_completed(list(tasks))):
+        for coro in tqdm(as_completed(list(tasks))):
             await coro
-    except asyncio.CancelledError:
+    except CancelledError:
         logger.warning('Tasks canceled', exc_info=True)
         return
     except MemoryError as e:
@@ -153,7 +119,7 @@ async def create_dataframe(start, end, *filters, force=False):
         print_error('Something went wrong', str(e))
         return
     finally:
-        for task in asyncio.all_tasks():
+        for task in all_tasks():
             task.cancel()
             try:
                 await task
@@ -171,9 +137,9 @@ async def create_dataframe(start, end, *filters, force=False):
                     'outputs': [[out.dict for out in lst] for lst in outputs],
                     'n_out': np.array(n_outs, dtype='uint16'),
                     'n_eq': np.array(n_eqs, dtype='uint16'),
-                    'den': np.array(dens, dtype='float64'),
-                    'abs_fee': np.array(abs_fees, dtype='float64'),
-                    'rel_fee': np.array(rel_fees, dtype='float64'),
+                    'den': np.array(dens, dtype='uint64'),
+                    'abs_fee': np.array(abs_fees, dtype='uint32'),
+                    'rel_fee': np.array(rel_fees, dtype='uint16'),
                     'height': np.array(heights, dtype='uint32'),
                     'date': np.array(dates, dtype='datetime64')})
 
@@ -281,7 +247,7 @@ def show_tx(df, txid, display_all=False):
 
 
 def get_subplot():
-    fig, ax = plt.subplots()
+    fig, ax = subplots()
     fig.set_size_inches(20, 10)
     ax.set_xlabel('Txs')
     return fig, ax
@@ -289,7 +255,7 @@ def get_subplot():
 
 def save_graph(filepath):
     try:
-        plt.savefig(f'{filepath}.png', dpi=400, bbox_inches='tight')
+        savefig(f'{filepath}.png', dpi=400, bbox_inches='tight')
     except PermissionError:
         print_error('Permission error', f'Permission denied for `{filepath}`')
         return
@@ -342,9 +308,9 @@ def show_volume(df, filepath=''):
     fig, ax = get_subplot()
     ax.set_ylabel('BTC')
     ax.set_title('Volume')
-    plt.plot(inputs_sums, label='Input', color='blue')
-    plt.plot(eq_sums, label='Mixed', color='green')
-    plt.legend()
+    plot(inputs_sums, label='Input', color='blue')
+    plot(eq_sums, label='Mixed', color='green')
+    legend()
     if filepath:
         save_graph(filepath)
     return
@@ -366,9 +332,9 @@ def show_daily(df, filepath=''):
     ax.set_xlabel('Days')
     ax.set_title('Daily txs')
     x_values = [str(date).split()[0][-5:] for date in count_dates.keys()]
-    plt.plot_date(x_values, counts, label='Txs per day', color='blue', fmt='-')
-    plt.plot_date(x_values, daily_avg, label='Average', color='green', fmt='-')
-    plt.legend()
+    plot_date(x_values, counts, label='Txs per day', color='blue', fmt='-')
+    plot_date(x_values, daily_avg, label='Average', color='green', fmt='-')
+    legend()
     fig.autofmt_xdate()
     if filepath:
         save_graph(filepath)
@@ -379,7 +345,7 @@ if __name__ == '__main__':
     from ast import literal_eval
     from advanced.filters import TxFilter
 
-    parser = argparse.ArgumentParser(description='Scan from start block height to end block height using given filter. '
+    parser = ArgumentParser(description='Scan from start block height to end block height using given filter. '
                                                  'If you give it a filepath, the result dataframe will be saved.')
     parser.add_argument('start',
                         type=int,
@@ -397,6 +363,6 @@ if __name__ == '__main__':
                         help='Filepath where to save the result dataframe.')
     args = parser.parse_args()
     tx_filter = TxFilter(**args.filter) if args.filter else TxFilter()
-    res = asyncio.run(create_dataframe(args.start, args.end, tx_filter))
+    res = run(create_dataframe(args.start, args.end, tx_filter))
     if args.filepath:
         save(args.filepath, res)
