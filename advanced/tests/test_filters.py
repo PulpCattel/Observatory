@@ -15,7 +15,7 @@ sys.path.insert(0, parent_dir)
 import filters
 import containers
 
-simple_object = namedtuple('obj', ['criteria1'])
+simple_object = namedtuple('simple_object', ['criteria1'])
 date_dict = {'date': ''}
 simple_tx = containers.Tx(template_txs.simple_transaction, 1600362598, 625000000, 648775)
 coinbase_tx = containers.Tx(template_txs.coinbase_transaction, 1600362598, 625000000, 648775)

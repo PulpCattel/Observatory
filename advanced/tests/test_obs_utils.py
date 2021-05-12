@@ -1,6 +1,7 @@
 from inspect import currentframe, getfile
 import os
 import sys
+from typing import Dict, Union
 
 # Used to import from parent directory
 current_dir: str = os.path.dirname(os.path.abspath(getfile(currentframe())))
@@ -10,7 +11,7 @@ sys.path.insert(0, parent_dir)
 from obs_utils import parse_start_and_end
 
 # Fake getblockchaininfo dict
-info = {'blocks': 100,
+info: Dict[str, Union[int, bool]] = {'blocks': 100,
         'pruneheight': 50,
         'pruned': True}
 
@@ -58,5 +59,3 @@ def test_parse_start_and_end(capsys) -> None:
     assert end is None
     captured = capsys.readouterr()
     assert captured.out == "{'text/markdown': '#### Invalid `end`:'}\n{'text/markdown': 'End height cannot be negative'}\n"
-
-

@@ -10,7 +10,7 @@ def print_error(title: str, message: str) -> None:
     display_markdown(message, raw=True)
 
 
-def get_logger(log_setting: Union[str, bool], name: str) -> Logger:
+def get_logger(log_setting: str, name: str) -> Logger:
     logger = getLogger(name)
     f_handler = FileHandler('log.txt')
     if not log_setting:
@@ -52,13 +52,13 @@ def parse_start_and_end(start: int,
         block_count: int = (info['blocks'])
         if not end:
             # Scan till most recent available block
-            end: int = block_count
-            start: int = end + start + 1
+            end = block_count
+            start = end + start + 1
         else:
             # Scan for 'end' block or till most recent available block
-            start: int = block_count + start + 1
+            start = block_count + start + 1
             potential_end: int = start + end - 1
-            end: int = potential_end if potential_end <= block_count else block_count
+            end = potential_end if potential_end <= block_count else block_count
     if info['pruned'] is True:
         if end < info['pruneheight']:
             print_error('Invalid `end`',
@@ -67,7 +67,7 @@ def parse_start_and_end(start: int,
         if start < info['pruneheight']:
             if force:
                 # Start scanning from the lowest available block
-                start: int = info['pruneheight']
+                start = info['pruneheight']
             else:
                 error_msg = 'Start block height is lower than the lowest-height complete block stored ' \
                             f'({info["pruneheight"]}), if you want to scan anyway starting from lowest available height ' \

@@ -26,7 +26,7 @@ class Filter:
             try:
                 candidate: Any = getattr(obj, key)
             except AttributeError:
-                candidate: Any = obj
+                candidate = obj
             if getattr(self, f'match_{key}')(candidate, *args, **kwargs) is False:
                 return False
         return True

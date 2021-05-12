@@ -1,6 +1,6 @@
 from collections import Counter
 from datetime import datetime as dt
-from typing import Dict, Any, Iterator, List
+from typing import Dict, Any, Iterator, List, Union
 
 
 class Container:
@@ -24,20 +24,20 @@ class TxInput(Container):
     def __init__(self, tx_input: Dict[str, Any], subsidy: int):
         if 'txid' in tx_input:
             self.txid: str = tx_input['txid']
-            self.height: int = tx_input['prevout']['height']
+            self.height: Union[int, None] = tx_input['prevout']['height']
             self.value: int = int(tx_input['prevout']['value'] * 1e8)
-            self.vout: int = tx_input['vout']
+            self.vout: Union[int, None] = tx_input['vout']
             self.addresses: List[str] = tx_input['prevout']['scriptPubKey']['addresses'] if 'addresses' in \
                                                                                             tx_input['prevout'][
                                                                                                 'scriptPubKey'] else []
             self.type: str = tx_input['prevout']['scriptPubKey']['type']
         else:
-            self.txid: str = f'{tx_input["coinbase"]}'
-            self.height: None = None
-            self.value: int = subsidy
-            self.vout: None = None
-            self.addresses: List = []
-            self.type: str = 'coinbase'
+            self.txid = f'{tx_input["coinbase"]}'
+            self.height = None
+            self.value = subsidy
+            self.vout = None
+            self.addresses = []
+            self.type = 'coinbase'
         return
 
     @property
@@ -103,7 +103,7 @@ class Tx(Container):
         return max(Counter(self.output_values).values())
 
     @property
-    def den(self) -> int:
+    def den(self) -> Union[int, None]:
         """
         Return the denomination, defined as the value in satoshi
         of the most common equally sized output.
@@ -115,6 +115,7 @@ class Tx(Container):
         for key, value in Counter(self.output_values).items():
             if value == n_eq:
                 return key
+        return None
 
     @property
     def abs_fee(self) -> int:
