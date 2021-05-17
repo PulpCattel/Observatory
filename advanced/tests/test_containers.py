@@ -60,6 +60,14 @@ def test_simple_tx() -> None:
     assert tx['date'] == '2020-09-17 17:09'
     assert list(tx.addresses) == simple_tx_addresses
     assert list(tx.types) == simple_tx_types
+    # Test dict() method
+    keys = ['txid', 'hash', 'version', 'vsize', 'size', 'weight']
+    d = tx.dict(keys)
+    assert isinstance(d, dict)
+    assert d['txid'] == 'dde13831553ccfc48fb6ef3237ebea81a87ab67de53ed5d6476d44d61a6d37cc'
+    assert 'height' not in d.keys()
+    d = tx.dict()
+    assert 'height' in d.keys()
 
 
 def test_coinbase_tx() -> None:
