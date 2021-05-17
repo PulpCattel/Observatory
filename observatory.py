@@ -47,10 +47,9 @@ async def create_dataframe(start, end, *filters, force=False):
     async def scan(blockheight):
 
         blockhash = await rpc_client.getblockhash(blockheight)
-        subsidy = (await rpc_client.getblockstats(blockhash))['subsidy']
         block = await rpc_client.getblock(blockhash, 3)
         while block['tx']:
-            tx = Tx(block['tx'].pop(0), block['time'], subsidy, blockheight)
+            tx = Tx(block['tx'].pop(0), block['time'], blockheight)
             for f in filters:
                 if f.match(tx):
                     txids.append(tx.txid)

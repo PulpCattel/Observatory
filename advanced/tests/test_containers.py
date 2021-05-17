@@ -23,7 +23,7 @@ coinbase_tx_types: List[str] = ['coinbase', 'pubkeyhash', 'nulldata', 'nulldata'
 
 
 def test_simple_tx() -> None:
-    tx = Tx(template_txs.simple_transaction, 1600362598, 625000000, 648775)
+    tx = Tx(template_txs.simple_transaction, 1600362598, 648775)
     assert tx.txid == 'dde13831553ccfc48fb6ef3237ebea81a87ab67de53ed5d6476d44d61a6d37cc'
     assert tx.version == 1
     assert tx.size == 249
@@ -63,7 +63,7 @@ def test_simple_tx() -> None:
 
 
 def test_coinbase_tx() -> None:
-    tx = Tx(template_txs.coinbase_transaction, 1600362598, 625000000, 648775)
+    tx = Tx(template_txs.coinbase_transaction, 1600362598, 648775)
     assert tx.txid == 'aefaf56793980778f4ed2d5d1900a4e99a9029966b0897ae35ad3d6c6a6d1e5d'
     assert tx.version == 1
     assert tx.size == 362
@@ -74,7 +74,7 @@ def test_coinbase_tx() -> None:
     assert isinstance(tx.outputs[0], TxOutput)
     assert tx.inputs[0].txid == '0347e609046998635f2f706f6f6c696e2e636f6d2ffabe6d6d092f11a0c31abafdc2ecf84f0aedd3745a6ce7e38d139dabc350f0822caa6500010000000000000013d3f5221eab97eaca195f9135a260ca118042487c00d10e000000000000'
     assert tx.inputs[0].height is None
-    assert tx.inputs[0].value == 625000000
+    assert tx.inputs[0].value == 0
     assert tx.inputs[0].vout is None
     assert tx.inputs[0].addresses == []
     assert tx.inputs[0].type == 'coinbase'
@@ -109,7 +109,7 @@ def test_coinbase_tx() -> None:
 
 
 def test_joinmarket_tx() -> None:
-    tx = Tx(template_txs.joinmarket_transaction, 1615530893, 625000000, 674250)
+    tx = Tx(template_txs.joinmarket_transaction, 1615530893, 674250)
     assert tx.n_eq == 7
     assert tx.den == 4116232
     assert tx.abs_fee == 156383

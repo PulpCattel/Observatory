@@ -17,10 +17,10 @@ import containers
 
 simple_object = namedtuple('simple_object', ['criteria1'])
 date_dict = {'date': ''}
-simple_tx = containers.Tx(template_txs.simple_transaction, 1600362598, 625000000, 648775)
-coinbase_tx = containers.Tx(template_txs.coinbase_transaction, 1600362598, 625000000, 648775)
-same_output_type_tx = containers.Tx(template_txs.same_output_type_tx, 1600456080, 625000000, 648958)
-jm_tx = containers.Tx(template_txs.joinmarket_transaction, 1615530893, 625000000, 674250)
+simple_tx = containers.Tx(template_txs.simple_transaction, 1600362598, 648775)
+coinbase_tx = containers.Tx(template_txs.coinbase_transaction, 1600362598, 648775)
+same_output_type_tx = containers.Tx(template_txs.same_output_type_tx, 1600456080, 648958)
+jm_tx = containers.Tx(template_txs.joinmarket_transaction, 1615530893, 674250)
 
 
 def test_match_txid():

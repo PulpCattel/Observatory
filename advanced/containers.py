@@ -1,6 +1,6 @@
 from collections import Counter
 from datetime import datetime as dt
-from typing import Dict, Any, Iterator, List, Union
+from typing import Dict, Any, Iterator, List, Optional
 
 
 class Container:
@@ -10,7 +10,7 @@ class Container:
 
     __slots__ = ()
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: Any) -> Any:
         return getattr(self, item)
 
 
@@ -21,12 +21,12 @@ class TxInput(Container):
 
     __slots__ = ('txid', 'height', 'value', 'vout', 'addresses', 'type')
 
-    def __init__(self, tx_input: Dict[str, Any], subsidy: int):
+    def __init__(self, tx_input: Dict[str, Any]) -> None:
         if 'txid' in tx_input:
             self.txid: str = tx_input['txid']
-            self.height: Union[int, None] = tx_input['prevout']['height']
+            self.height: Optional[int] = tx_input['prevout']['height']
             self.value: int = int(tx_input['prevout']['value'] * 1e8)
-            self.vout: Union[int, None] = tx_input['vout']
+            self.vout: Optional[int] = tx_input['vout']
             self.addresses: List[str] = tx_input['prevout']['scriptPubKey']['addresses'] if 'addresses' in \
                                                                                             tx_input['prevout'][
                                                                                                 'scriptPubKey'] else []
@@ -34,14 +34,13 @@ class TxInput(Container):
         else:
             self.txid = f'{tx_input["coinbase"]}'
             self.height = None
-            self.value = subsidy
+            self.value = 0
             self.vout = None
             self.addresses = []
             self.type = 'coinbase'
-        return
 
     @property
-    def dict(self):
+    def dict(self) -> Dict[str, Any]:
         return {attr: self[attr] for attr in self.__slots__}
 
 
@@ -52,16 +51,15 @@ class TxOutput(Container):
 
     __slots__ = ('value', 'vout', 'addresses', 'type')
 
-    def __init__(self, tx_output: Dict[str, Any]):
+    def __init__(self, tx_output: Dict[str, Any]) -> None:
         self.value: int = int(tx_output['value'] * 1e8)
         self.vout: int = tx_output['n']
         self.addresses: List[str] = tx_output['scriptPubKey']['addresses'] if 'addresses' in tx_output[
             'scriptPubKey'] else []
         self.type: str = tx_output['scriptPubKey']['type']
-        return
 
     @property
-    def dict(self):
+    def dict(self) -> Dict[str, Any]:
         return {attr: self[attr] for attr in self.__slots__}
 
 
@@ -73,7 +71,7 @@ class Tx(Container):
     __slots__ = ('txid', 'hash', 'version', 'size', 'vsize', 'weight', 'locktime', 'inputs', 'outputs',
                  'height', 'timestamp_date')
 
-    def __init__(self, transaction: dict, date: int, subsidy: int, block_height: int):
+    def __init__(self, transaction: dict, date: int, block_height: int) -> None:
         self.txid: str = transaction['txid']
         self.hash: str = transaction['hash']
         self.version: int = transaction['version']
@@ -81,11 +79,10 @@ class Tx(Container):
         self.vsize: int = transaction['vsize']
         self.weight: int = transaction['weight']
         self.locktime: int = transaction['locktime']
-        self.inputs: list = [TxInput(tx_input, subsidy) for tx_input in transaction['vin']]
+        self.inputs: list = [TxInput(tx_input) for tx_input in transaction['vin']]
         self.outputs: list = [TxOutput(tx_output) for tx_output in transaction['vout']]
         self.height: int = block_height
         self.timestamp_date: int = date
-        return
 
     @property
     def n_in(self) -> int:
@@ -103,19 +100,18 @@ class Tx(Container):
         return max(Counter(self.output_values).values())
 
     @property
-    def den(self) -> Union[int, None]:
+    def den(self) -> int:
         """
         Return the denomination, defined as the value in satoshi
         of the most common equally sized output.
-        If no equally size outputs, return None
+        If no equally sized outputs, return 0
         """
         n_eq: int = self.n_eq
-        if n_eq == 1:
-            return 0
-        for key, value in Counter(self.output_values).items():
-            if value == n_eq:
-                return key
-        return None
+        if n_eq > 1:
+            for key, value in Counter(self.output_values).items():
+                if value == n_eq:
+                    return key
+        return 0
 
     @property
     def abs_fee(self) -> int:
