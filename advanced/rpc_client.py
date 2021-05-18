@@ -1,6 +1,7 @@
-import asyncio
+from asyncio import sleep
+from typing import Optional, Any, List, Callable, Dict
 
-import aiohttp
+from aiohttp import ClientSession, BasicAuth, ClientTimeout
 
 
 class RpcError(Exception):
@@ -17,64 +18,75 @@ class RpcClient:
     Methods that are not whitelisted will raise a ForbiddenMethod exception.
     """
 
-    def __init__(self, session, endpoint):
-        self.session = session
-        self.endpoint = endpoint
-        self.id = 0
-        self.__whitelisted_methods = []
-        return
+    def __init__(self,
+                 session: Optional[ClientSession] = None,
+                 endpoint: Optional[str] = None,
+                 user: str = '',
+                 pwd: str = '',
+                 **kwargs: Any) -> None:
+        """
+        Initialize asynchronous JSON-RPC client, if no session is provided, aiohttp.ClientSession() is used.
+        If no `endpoint` is provided, Bitcoin Core default one is used.
+        Kwargs argument will be passed to aiohttp.ClientSession().
+        Can be used with async context manager to cleanly close the session.
+        """
+        self.id: int = 0
+        self.__whitelisted_methods: List[str] = []
+        if not session:
+            self.session: ClientSession = ClientSession(headers={'content-type': 'application/json'},
+                                                        auth=BasicAuth(user, pwd),
+                                                        timeout=ClientTimeout(total=0),
+                                                        **kwargs)
+        else:
+            self.session = session
+        if not endpoint:
+            self.endpoint: str = 'http://127.0.0.1:8332/'
+        else:
+            self.endpoint = endpoint
 
-    def __getattr__(self, method):
-        if method not in self.__whitelisted_methods:
-            error_msg = f'Invalid method: method "{method}" is not whitelisted'
-            raise ForbiddenMethod(error_msg)
+    async def __aenter__(self) -> 'RpcClient':
+        return self
 
-        async def call(*params):
-            payload = {
-                'jsonrpc': '2.0',
+    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
+        await self.close()
+
+    def build_payload(self, method: str, params: Optional[Any] = None) -> Dict[str, Any]:
+        return {'jsonrpc': '2.0',
                 'id': self.id,
                 'method': method,
-                'params': params if params else None
-            }
-            self.id += 1
-            async with self.session.post(self.endpoint, json=payload) as response:
+                'params': params}
+
+    def __getattr__(self, method: str) -> Callable:
+        if method not in self.__whitelisted_methods:
+            error_msg: str = f'Invalid method: method "{method}" is not whitelisted'
+            raise ForbiddenMethod(error_msg)
+
+        async def call(*params: Any) -> Any:
+            self.id += 1  # Start counting from 1 not 0, due to async
+            async with self.session.post(self.endpoint,
+                                         json=self.build_payload(method, params)) as response:
                 response.raise_for_status()
-                result = (await response.json())['result']
-            return result
+                return (await response.json())['result']
 
         return call
 
     @property
-    def whitelisted_methods(self):
+    def whitelisted_methods(self) -> List[str]:
         return self.__whitelisted_methods
 
-    def add_methods(self, *methods):
+    def add_methods(self, *methods: str) -> None:
         for method in methods:
             if method in self.__whitelisted_methods:
                 continue
             self.__whitelisted_methods.append(method)
-        return
 
-    def remove_methods(self, *methods):
+    def remove_methods(self, *methods: str) -> None:
         for method in methods:
-            if method not in self.__whitelisted_methods:
+            try:
+                self.__whitelisted_methods.remove(method)
+            except ValueError:
                 continue
-            self.__whitelisted_methods.remove(method)
-        return
 
-    async def close(self):
+    async def close(self) -> None:
         await self.session.close()
-        await asyncio.sleep(0.1)
-        return
-
-    @classmethod
-    async def get_client(cls, session=None, endpoint='', user='', pwd=''):
-        if not session:
-            session = aiohttp.ClientSession(
-                headers={'content-type': 'application/json'},
-                auth=aiohttp.BasicAuth(user, pwd),
-                timeout=aiohttp.ClientTimeout(total=0)
-            )
-        if not endpoint:
-            endpoint = 'http://127.0.0.1:8332/'
-        return cls(session, endpoint)
+        await sleep(0.1)

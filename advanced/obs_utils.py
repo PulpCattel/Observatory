@@ -1,6 +1,6 @@
 from logging import disable, Formatter, getLogger, Logger, INFO, FileHandler
 from sys import maxsize
-from typing import Union, Dict, Tuple, Any
+from typing import Dict, Tuple, Any
 
 from IPython.core.display import display_markdown
 
@@ -27,25 +27,25 @@ def get_logger(log_setting: str, name: str) -> Logger:
 def parse_start_and_end(start: int,
                         end: int,
                         info: Dict[str, Any],
-                        force: bool) -> Union[Tuple[int, int], Tuple[None, None]]:
+                        force: bool) -> Tuple[int, int]:
     """
-    Figures out and returns appropriate start height and end height for the scan.
-    Uses info from `getblockchaininfo` RPC call to manage pruning.
-    Return double None and prints errors if they are invalid.
+    Figure out and return appropriate start height and end height for the block scan.
+    Use info from `getblockchaininfo` RPC call to manage pruning.
+    Raise exceptions and print errors if they are invalid.
     """
     if not isinstance(start, int):
         print_error('Invalid `start`', 'Start height is not a valid integer number')
-        return None, None
+        raise TypeError
     if not isinstance(end, int):
         print_error('Invalid `end`', 'End height is not a valid integer number')
-        return None, None
+        raise TypeError
     if end < 0:
         print_error('Invalid `end`', 'End height cannot be negative')
-        return None, None
+        raise ValueError
     if start > end:
         error_msg = f'Start height ({start}) is higher than end height ({end})'
         print_error('Invalid `start`', error_msg)
-        return None, None
+        raise ValueError
     if start < 0:
         # Start height is abs(start) blocks in the past.
         # Get current total number of blocks
@@ -63,7 +63,7 @@ def parse_start_and_end(start: int,
         if end < info['pruneheight']:
             print_error('Invalid `end`',
                         f'End block height is lower than the lowest-height complete block stored ({info["pruneheight"]})')
-            return None, None
+            raise ValueError
         if start < info['pruneheight']:
             if force:
                 # Start scanning from the lowest available block
@@ -73,5 +73,5 @@ def parse_start_and_end(start: int,
                             f'({info["pruneheight"]}), if you want to scan anyway starting from lowest available height ' \
                             'add argument `force=True`'
                 print_error('Invalid `start`', error_msg)
-                return None, None
+                raise ValueError
     return start, end

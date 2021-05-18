@@ -1,8 +1,9 @@
 from asyncio import Semaphore, create_task, as_completed, all_tasks, run, CancelledError
 from argparse import ArgumentParser
 from collections import Counter
+from logging import Logger
 from time import time
-from typing import List
+from typing import List, Optional
 
 from aiohttp import ClientConnectionError, ClientResponseError
 from matplotlib.pyplot import plot_date, plot, legend, savefig, style, subplots
@@ -16,16 +17,20 @@ from tqdm import tqdm
 from advanced.obs_utils import get_logger, print_error, parse_start_and_end
 from advanced.containers import Tx
 from advanced.rpc_client import RpcClient
+from advanced.filters import TxFilter
 from settings import settings
 
 style.use('fivethirtyeight')
 
 
 # MAIN
-async def create_dataframe(start, end, *filters, force=False):
-    start_time = time()
-    semaphore = Semaphore(settings['scan_limit'])
-    logger = get_logger(settings['logging'], __name__)
+async def create_dataframe(start: int,
+                           end: int,
+                           *filters: TxFilter,
+                           force: bool = False) -> Optional[DataFrame]:
+    start_time: float = time()
+    semaphore: Semaphore = Semaphore(settings['scan_limit'])
+    logger: Logger = get_logger(settings['logging'], __name__)
 
     txids = []
     versions = []
@@ -78,53 +83,49 @@ async def create_dataframe(start, end, *filters, force=False):
                 raise MemoryError(f'Running out of memory (total: {bytes2human(mem.total)}, used {mem.percent}%)')
             return await scan(blockheight)
 
-    rpc_client = await RpcClient.get_client(
-        user=settings['rpc_user'],
-        pwd=settings['rpc_password'],
-        endpoint=settings['rpc_endpoint'],
-    )
-    rpc_client.add_methods('getblockhash', 'getblock', 'getblockstats', 'getblockchaininfo')
-    try:
-        info = await rpc_client.getblockchaininfo()
-    except ClientConnectionError:
-        logger.error('Connection error', exc_info=True)
-        print_error('Connection error', 'Cannot establish connection with Bitcoin Knots')
-        await rpc_client.close()
-        return
-    except ClientResponseError:
-        logger.error('Response error', exc_info=True)
-        print_error('Response error', 'Invalid RPC credentials')
-        await rpc_client.close()
-        return
-    start, end = parse_start_and_end(start, end, info, force)
-    if not start:
-        return
-    start_msg = f'Start scanning from block **{start}** to block **{end}** included...'
-    logger.info(start_msg)
-    display_markdown(start_msg, raw=True)
-    tasks = (create_task(sem_scan(blockheight)) for blockheight in range(start, end + 1))
-    try:
-        for coro in tqdm(as_completed(list(tasks))):
-            await coro
-    except CancelledError:
-        logger.warning('Tasks canceled', exc_info=True)
-        return
-    except MemoryError as e:
-        logger.warning('MemoryError', exc_info=True)
-        print_error('Memory error', str(e))
-        return
-    except Exception as e:
-        logger.error('Something went wrong', exc_info=True)
-        print_error('Something went wrong', str(e))
-        return
-    finally:
-        for task in all_tasks():
-            task.cancel()
-            try:
-                await task
-            except:
-                pass
-        await rpc_client.close()
+    async with RpcClient(user=settings['rpc_user'],
+                         pwd=settings['rpc_password'],
+                         endpoint=settings['rpc_endpoint']) as rpc:
+        rpc.add_methods('getblockhash', 'getblock', 'getblockstats', 'getblockchaininfo')
+        try:
+            info = await rpc.getblockchaininfo()
+        except ClientConnectionError:
+            logger.error('Connection error', exc_info=True)
+            print_error('Connection error', 'Cannot establish connection with Bitcoin Knots')
+            return None
+        except ClientResponseError:
+            logger.error('Response error', exc_info=True)
+            print_error('Response error', 'Invalid RPC credentials')
+            return None
+        try:
+            start, end = parse_start_and_end(start, end, info, force)
+        except (ValueError, TypeError):
+            return None
+        start_msg = f'Start scanning from block **{start}** to block **{end}** included...'
+        logger.info(start_msg)
+        display_markdown(start_msg, raw=True)
+        tasks = (create_task(sem_scan(blockheight)) for blockheight in range(start, end + 1))
+        try:
+            for coro in tqdm(as_completed(list(tasks))):
+                await coro
+        except CancelledError:
+            logger.warning('Tasks canceled', exc_info=True)
+            return None
+        except MemoryError as e:
+            logger.warning('MemoryError', exc_info=True)
+            print_error('Memory error', str(e))
+            return None
+        except Exception as e:
+            logger.error('Something went wrong', exc_info=True)
+            print_error('Something went wrong', str(e))
+            return None
+        finally:
+            for task in all_tasks():
+                task.cancel()
+                try:
+                    await task
+                except:
+                    pass
     df = DataFrame({'txid': txids,
                     'version': np.array(versions, dtype='uint8'),
                     'size': np.array(sizes, dtype='uint32'),
@@ -345,7 +346,7 @@ if __name__ == '__main__':
     from advanced.filters import TxFilter
 
     parser = ArgumentParser(description='Scan from start block height to end block height using given filter. '
-                                                 'If you give it a filepath, the result dataframe will be saved.')
+                                        'If you give it a filepath, the result dataframe will be saved.')
     parser.add_argument('start',
                         type=int,
                         help='Start block height')
