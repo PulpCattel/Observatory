@@ -61,14 +61,15 @@ class RpcClient:
             error_msg: str = f'Invalid method: method "{method}" is not whitelisted'
             raise ForbiddenMethod(error_msg)
 
-        async def call(*params: Any) -> Any:
-            self.id += 1  # Start counting from 1 not 0, due to async
+        async def post(*params: Any) -> Any:
+            payload: Dict[str, Any] = self.build_payload(method, params)
+            self.id += 1
             async with self.session.post(self.endpoint,
-                                         json=self.build_payload(method, params)) as response:
+                                         json=payload) as response:
                 response.raise_for_status()
                 return (await response.json())['result']
 
-        return call
+        return post
 
     @property
     def whitelisted_methods(self) -> List[str]:

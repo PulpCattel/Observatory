@@ -1,6 +1,6 @@
 from collections import Counter
 from datetime import datetime as dt
-from typing import Dict, Any, Iterator, List, Optional
+from typing import Dict, Any, Iterator, List, Optional, Iterable
 
 
 class Container:
@@ -41,7 +41,7 @@ class TxInput(Container):
 
     @property
     def dict(self) -> Dict[str, Any]:
-        return {attr: self[attr] for attr in self.__slots__}
+        return {key: self[key] for key in self.__slots__}
 
 
 class TxOutput(Container):
@@ -60,7 +60,7 @@ class TxOutput(Container):
 
     @property
     def dict(self) -> Dict[str, Any]:
-        return {attr: self[attr] for attr in self.__slots__}
+        return {key: self[key] for key in self.__slots__}
 
 
 class Tx(Container):
@@ -176,10 +176,10 @@ class Tx(Container):
         for tx_output in self.outputs:
             yield tx_output.value
 
-    def dict(self, keys: Optional[List[str]] = None) -> Dict[str, Any]:
+    def dict(self, keys: Optional[Iterable[str]] = None) -> Dict[str, Any]:
         """
         Return dict representation of the transaction.
         Specify `keys` to select which keys to use in the dictionary.
         """
-        return {attr: self[attr] if attr not in ('inputs', 'outputs') else
-                [obj.dict for obj in self[attr]] for attr in (keys if keys else self.__slots__)}
+        return {key: self[key] if key not in ('inputs', 'outputs') else
+                [obj.dict for obj in self[key]] for key in (keys if keys else self.__slots__)}

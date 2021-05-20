@@ -22,20 +22,18 @@ class Filter:
         Return False if at least one of the calls returns False.
         Return True if no single call returns False or the filter holds no criteria.
         """
-        for key in self.criteria:
+
+        def get_candidate(key: str) -> Any:
             try:
                 candidate: Any = getattr(obj, key)
             except AttributeError:
                 candidate = obj
-            if getattr(self, f'match_{key}')(candidate, *args, **kwargs) is False:
-                return False
-        return True
+            return candidate
 
-    def match_callables(self, obj: object) -> bool:
-        for c in self.criteria['callables']:
-            if not c(obj):
-                return False
-        return True
+        return all(getattr(self, f'match_{key}')(get_candidate(key), *args, **kwargs) for key in self.criteria)
+
+    def match_callables(self, obj: object, *args, **kwargs) -> bool:
+        return all(c(obj, *args, **kwargs) for c in self.criteria['callables'])
 
 
 class TxFilter(Filter):

@@ -1,8 +1,10 @@
 from logging import disable, Formatter, getLogger, Logger, INFO, FileHandler
 from sys import maxsize
-from typing import Dict, Tuple, Any
+from typing import Dict, Tuple, Any, Optional
 
 from IPython.core.display import display_markdown
+from psutil import virtual_memory
+from psutil._common import bytes2human
 
 
 def print_error(title: str, message: str) -> None:
@@ -43,8 +45,7 @@ def parse_start_and_end(start: int,
         print_error('Invalid `end`', 'End height cannot be negative')
         raise ValueError
     if start > end:
-        error_msg = f'Start height ({start}) is higher than end height ({end})'
-        print_error('Invalid `start`', error_msg)
+        print_error('Invalid `start`', f'Start height ({start}) is higher than end height ({end})')
         raise ValueError
     if start < 0:
         # Start height is abs(start) blocks in the past.
@@ -75,3 +76,14 @@ def parse_start_and_end(start: int,
                 print_error('Invalid `start`', error_msg)
                 raise ValueError
     return start, end
+
+
+def check_memory(memory_limit: Optional[int] = None) -> Optional[int]:
+    """
+    Check system memory, if `memory_limiy` is not provided, return % memory used.
+    If a limit is provided, raise MemoryError if the limit is reached.
+    """
+    memory: Any = virtual_memory()
+    if memory_limit and (memory.percent > memory_limit):
+        raise MemoryError(f'Running out of memory (total: {bytes2human(memory.total)}, used: {memory.percent}%)')
+    return int(memory.percent)

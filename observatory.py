@@ -1,4 +1,4 @@
-from asyncio import Semaphore, create_task, as_completed, all_tasks, run, CancelledError
+from asyncio import all_tasks, run, CancelledError
 from argparse import ArgumentParser
 from collections import Counter
 from logging import Logger
@@ -7,16 +7,14 @@ from typing import List, Optional
 
 from aiohttp import ClientConnectionError, ClientResponseError
 from matplotlib.pyplot import plot_date, plot, legend, savefig, style, subplots
-import numpy as np
 from IPython.display import display_markdown, display
 from pandas import DataFrame, read_feather, option_context, get_option
-from psutil import virtual_memory
-from psutil._common import bytes2human
-from tqdm import tqdm
+from tqdm.asyncio import tqdm
 
+from advanced.iterators import get_blocks_from_rpc, get_txs
 from advanced.obs_utils import get_logger, print_error, parse_start_and_end
-from advanced.containers import Tx
 from advanced.rpc_client import RpcClient
+from advanced.pandas_utils import convert_dtypes, TX_DICT_KEYS
 from advanced.filters import TxFilter
 from settings import settings
 
@@ -27,61 +25,12 @@ style.use('fivethirtyeight')
 async def create_dataframe(start: int,
                            end: int,
                            *filters: TxFilter,
-                           force: bool = False) -> Optional[DataFrame]:
+                           force: bool = False,
+                           dict_keys: Optional[List[str]] = None) -> Optional[DataFrame]:
     start_time: float = time()
-    semaphore: Semaphore = Semaphore(settings['scan_limit'])
     logger: Logger = get_logger(settings['logging'], __name__)
-
-    txids = []
-    versions = []
-    sizes = []
-    vsizes = []
-    weights = []
-    locktimes = []
-    inputs = []
-    n_ins = []
-    outputs = []
-    n_outs = []
-    n_eqs = []
-    dens = []
-    abs_fees = []
-    rel_fees = []
-    heights = []
-    dates = []
-
-    async def scan(blockheight):
-
-        blockhash = await rpc_client.getblockhash(blockheight)
-        block = await rpc_client.getblock(blockhash, 3)
-        while block['tx']:
-            tx = Tx(block['tx'].pop(0), block['time'], blockheight)
-            for f in filters:
-                if f.match(tx):
-                    txids.append(tx.txid)
-                    versions.append(tx.version)
-                    sizes.append(tx.size)
-                    vsizes.append(tx.vsize)
-                    weights.append(tx.weight)
-                    locktimes.append(tx.locktime)
-                    inputs.append([inp for inp in tx.inputs])
-                    n_ins.append(tx.n_in)
-                    outputs.append([out for out in tx.outputs])
-                    n_outs.append(tx.n_out)
-                    n_eqs.append(tx.n_eq)
-                    dens.append(tx.den)
-                    abs_fees.append(tx.abs_fee)
-                    rel_fees.append(tx.rel_fee)
-                    heights.append(tx.height)
-                    dates.append(tx.date)
-                    break
-        return
-
-    async def sem_scan(blockheight):
-        async with semaphore:
-            mem = virtual_memory()
-            if mem.percent > settings['memory_limit']:
-                raise MemoryError(f'Running out of memory (total: {bytes2human(mem.total)}, used {mem.percent}%)')
-            return await scan(blockheight)
+    if not dict_keys:
+        dict_keys = TX_DICT_KEYS
 
     async with RpcClient(user=settings['rpc_user'],
                          pwd=settings['rpc_password'],
@@ -104,10 +53,13 @@ async def create_dataframe(start: int,
         start_msg = f'Start scanning from block **{start}** to block **{end}** included...'
         logger.info(start_msg)
         display_markdown(start_msg, raw=True)
-        tasks = (create_task(sem_scan(blockheight)) for blockheight in range(start, end + 1))
         try:
-            for coro in tqdm(as_completed(list(tasks))):
-                await coro
+            df = DataFrame([tx.dict(dict_keys) async for block in tqdm(get_blocks_from_rpc(start,
+                                                                                           end,
+                                                                                           rpc,
+                                                                                           settings['memory_limit'],
+                                                                                           settings['scan_limit']))
+                            for tx in get_txs(block, *filters)])
         except CancelledError:
             logger.warning('Tasks canceled', exc_info=True)
             return None
@@ -126,29 +78,17 @@ async def create_dataframe(start: int,
                     await task
                 except:
                     pass
-    df = DataFrame({'txid': txids,
-                    'version': np.array(versions, dtype='uint8'),
-                    'size': np.array(sizes, dtype='uint32'),
-                    'vsize': np.array(vsizes, dtype='uint32'),
-                    'weight': np.array(weights, dtype='uint32'),
-                    'locktime': np.array(locktimes, dtype='uint32'),
-                    'inputs': [[inp.dict for inp in lst] for lst in inputs],
-                    'n_in': np.array(n_ins, dtype='uint16'),
-                    'outputs': [[out.dict for out in lst] for lst in outputs],
-                    'n_out': np.array(n_outs, dtype='uint16'),
-                    'n_eq': np.array(n_eqs, dtype='uint16'),
-                    'den': np.array(dens, dtype='uint64'),
-                    'abs_fee': np.array(abs_fees, dtype='uint32'),
-                    'rel_fee': np.array(rel_fees, dtype='uint16'),
-                    'height': np.array(heights, dtype='uint32'),
-                    'date': np.array(dates, dtype='datetime64')})
 
     result_msg = f'Created dataframe of **{len(df)}** transactions in {round(time() - start_time, 2)}s'
     logger.info(result_msg)
     display_markdown(result_msg, raw=True)
     display_markdown('[Save dataframe](#Save-dataframe)', raw=True)
     display_markdown('[Start analysis](#Glimpse)', raw=True)
-    return df.set_index('txid').sort_values('date') if len(df) else df
+    if len(df):
+        df = convert_dtypes(df, dict_keys)
+        df.set_index('txid', inplace=True)
+        df.sort_values('height', inplace=True)
+    return df
 
 
 def save(filepath, df):
@@ -195,7 +135,7 @@ def load(filepath):
     return df.set_index('txid').sort_values('date')
 
 
-def show_intro(df, n, sort_by):
+def show_intro(df: DataFrame, n: int, sort_by: str) -> None:
     if df.empty:
         print_error('Empty dataframe', 'Cannot operate on empty dataframe')
         return
@@ -206,15 +146,15 @@ def show_intro(df, n, sort_by):
         print_error('Invalid sort_by', f'Given sort_by `{sort_by}` does not appear as column')
         return
     display_markdown(f'**{len(df)} total transactions**', raw=True)
-    df = df[[column for column in df.columns if column not in ['inputs', 'outputs']]]
-    if sort_by:
-        df = df.sort_values(sort_by)
+    if not sort_by:
+        sort_by = 'height'
+    df.sort_values(sort_by, inplace=True)
     with option_context('display.max_rows',
-                        n if n > get_option('display.max_rows') else get_option('display.max_rows')):
+                        abs(n) if abs(n) > get_option('display.max_rows') else get_option('display.max_rows')):
         if n < 0:
-            display(df.tail(abs(n)))
+            display(df[[column for column in df.columns if column not in ['inputs', 'outputs']]].tail(abs(n)))
         else:
-            display(df.head(n))
+            display(df[[column for column in df.columns if column not in ['inputs', 'outputs']]].head(n))
 
 
 def show_stats(df):

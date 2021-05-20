@@ -60,7 +60,10 @@ def test_simple_tx() -> None:
     assert tx['date'] == '2020-09-17 17:09'
     assert list(tx.addresses) == simple_tx_addresses
     assert list(tx.types) == simple_tx_types
-    # Test dict() method
+
+
+def test_dict():
+    tx = Tx(template_txs.simple_transaction, 1600362598, 648775)
     keys = ['txid', 'hash', 'version', 'vsize', 'size', 'weight']
     d = tx.dict(keys)
     assert isinstance(d, dict)

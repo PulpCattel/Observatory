@@ -5,12 +5,15 @@ from sys import path as sys_path
 from pytest import mark, raises
 from aiohttp import ClientSession
 
-# Used to import from parent directory
+# Used to import from parent directories
 currentdir = path.dirname(path.abspath(getfile(currentframe())))
 parentdir = path.dirname(currentdir)
+parent_parent = path.dirname(parentdir)
 sys_path.insert(0, parentdir)
+sys_path.insert(0, parent_parent)
 
 from rpc_client import RpcClient, ForbiddenMethod
+from settings import settings
 
 
 @mark.asyncio
@@ -79,3 +82,14 @@ async def test_build_payload():
                            'id': 0,
                            'method': 'getblock',
                            'params': None}
+
+
+@mark.asyncio
+async def test_rpc_post():
+    async with RpcClient(user=settings['rpc_user'],
+                         pwd=settings['rpc_password']) as rpc:
+        rpc.add_methods('getblockchaininfo', 'getblockhash')
+        info = await rpc.getblockchaininfo()
+        assert isinstance(info, dict)
+        blockhash = await rpc.getblockhash(info['blocks'])
+        assert blockhash == info['bestblockhash']

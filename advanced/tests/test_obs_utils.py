@@ -9,7 +9,7 @@ current_dir: str = os.path.dirname(os.path.abspath(getfile(currentframe())))
 parent_dir: str = os.path.dirname(current_dir)
 sys.path.insert(0, parent_dir)
 
-from obs_utils import parse_start_and_end
+from obs_utils import parse_start_and_end, check_memory
 
 # Fake getblockchaininfo dict
 info: Dict[str, Union[int, bool]] = {'blocks': 100,
@@ -54,3 +54,15 @@ def test_parse_start_and_end(capsys) -> None:
         parse_start_and_end(70, -10, info, False)
         captured = capsys.readouterr()
         assert captured.out == "{'text/markdown': '#### Invalid `end`:'}\n{'text/markdown': 'End height cannot be negative'}\n"
+
+
+def test_check_memory(capsys):
+    memory_used = check_memory()
+    assert isinstance(memory_used, int)
+    with raises(MemoryError):
+        check_memory(memory_used // 2)
+        captured = capsys.readouterr()
+        assert "Running out of memory" in captured.out
+    memory_used = check_memory()
+    # This should not raise any exception
+    check_memory(memory_used * 2)
