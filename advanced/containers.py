@@ -95,9 +95,9 @@ class Tx(Container):
     @property
     def n_eq(self) -> int:
         """
-        Return the frequency of the most common equally sized output, from a list of TxOutput containers.
+        Return the frequency of the most common equally sized output.
         """
-        return max(Counter(self.output_values).values())
+        return Counter(self.output_values).most_common(1)[0][1]
 
     @property
     def den(self) -> int:
@@ -106,11 +106,8 @@ class Tx(Container):
         of the most common equally sized output.
         If no equally sized outputs, return 0
         """
-        n_eq: int = self.n_eq
-        if n_eq > 1:
-            for key, value in Counter(self.output_values).items():
-                if value == n_eq:
-                    return key
+        if self.n_eq > 1:
+            return Counter(self.output_values).most_common(1)[0][0]
         return 0
 
     @property
