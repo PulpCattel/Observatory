@@ -22,7 +22,7 @@ Should be fairly easy to make it work on Windows or Mac but I have no experience
 
 * [Bitcoin Knots](https://bitcoinknots.org/).
 This is required cause Knots offers `getblock` verbosity 3.
-Knots will work right out of the box with your `.bitcoin` data folder, so you can effortlessly switch between Bitcoin Core and Bitcoin Knots. (A [PR](https://github.com/bitcoin/bitcoin/pull/21245) is currently open to introduce the same functionality in Bitcoin Core. As soon as this is merged, this project will switch to it).  
+Knots will work right out of the box with your `.bitcoin` data folder, so you can effortlessly switch between Bitcoin Core and Bitcoin Knots. (~~A [PR](https://github.com/bitcoin/bitcoin/pull/21245) is currently open to introduce the same functionality in Bitcoin Core~~ The [PR](https://github.com/bitcoin/bitcoin/pull/22918) has been merged, it should be available in the next release. As soon as this is merged, this project will switch to it).  
 The full node can be pruned, although this will limit the scan possibilities only to the stored blocks.
 
 * Python 3.7+ (should be already installed with most Linux distros).
