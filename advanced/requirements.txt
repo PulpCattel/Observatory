@@ -1,9 +1,0 @@
-pandas
-aiohttp
-numpy
-matplotlib
-tqdm
-jupyterlab
-ipython
-psutil
-pyarrow
