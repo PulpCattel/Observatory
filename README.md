@@ -111,7 +111,7 @@ So a filter that represents a transaction with a certain TXID could look like:
 
 ```toml
 [filters.txid]
-txid = "Include('')"
+txid = "Include('ff821fea070bed1220')"
 ```
 
 * The `filters` part is a constant, it tells `bobs` that you are declaring a new filter.
@@ -122,7 +122,7 @@ txid = "Include('')"
   accept one or more values and represent a characterizing mark or trait that a candidate should have in order to match
   the `criterion`.
 
-You can set as many filters as you want, when you are done, you can pass the desired filter names with the `-f` option:
+You can set as many filters as you want, with unlimited criterion each; when you are done, you can pass the desired filter names with the `-f` option:
 
 #### Keys
 
@@ -176,7 +176,7 @@ The list should be more or less stable, more documentation is planned.
 
 ### Target
 
-With the `t` or `--target` option you can specify which data structure to target. By default, look at the blocks in the
+With the `-t` or `--target` option you can specify which data structure to target. By default, it looks at the blocks in the
 longest valid chain (as provided by the full node), you can choose to look at the mempool instead by
 passing `-t mempool`
 
