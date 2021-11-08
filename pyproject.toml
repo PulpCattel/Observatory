@@ -1,0 +1,5 @@
+[tool.pytest.ini_options]
+markers = [
+    "require_rest: marks test that require a running Bitcoin Core with the REST server (deselect with `-m 'not require_rest'`)",
+    "developing: marks test to run independently while developing",
+]
