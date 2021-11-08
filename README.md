@@ -6,8 +6,8 @@ It requires no state, runs entirely in memory, and is well suited for pruned nod
 
 * [Requirements](#Requirements)
 * [Setup](#Setup)
-    * [Easy way](#Easy way)
-    * [Recommended way](#Recommended way)
+    * [Easy way](#Easy-way)
+    * [Recommended way](#Recommended-way)
 * [Usage](#Usage)
     * [Settings](#Settings)
     * [Filters](#Filters)
