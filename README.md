@@ -272,7 +272,7 @@ Found 10 transaction:
 │ e4063d95d6951870251890d71cb4ab3c415f66ae054a1a7103306fb9ef51e668 │   708807 │ 2021-11-08 16:25 │
 ```
 
-You can pass the option multiple times (e.g, `-ddd` to increase the details even more).
+You can pass the option multiple times (e.g, `-ddd` will print detailed information of each transaction, inputs and outputs included).
 
 ---
 
