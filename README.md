@@ -4,13 +4,26 @@ Bobs is a Bitcoin OBServatory meant to be easy to use and lightweight, it allows
 related data structures (blocks, mempool, more planned) given customizable filters.  
 It requires no state, runs entirely in memory, and is well suited for pruned nodes.
 
+* [Requirements](#Requirements)
+* [Setup](#Setup)
+    * [Easy way](#Easy way)
+    * [Recommended way](#Recommended way)
+* [Usage](#Usage)
+    * [Settings](#Settings)
+    * [Filters](#Filters)
+        * [Keys](#Keys)
+        * [Criteria](#Criteria)
+    * [Target](#Target)
+    * [Scan](#Scan)
+    * [Details](#Details)
+
 ## Requirements
 
-* Linux only, tested on Ubuntu and Debian.
-Should be fairly easy to make it work on Windows or Mac, but I have no experience with neither of them.
+* Linux only, tested on Ubuntu and Debian. Should be fairly easy to make it work on Windows or Mac, but I have no
+  experience with neither of them.
 
-* [Bitcoin Core](https://github.com/bitcoin/bitcoin).
-The full node can be pruned, although this will limit the scan possibilities only to the stored blocks.
+* [Bitcoin Core](https://github.com/bitcoin/bitcoin). The full node can be pruned, although this will limit the scan
+  possibilities only to the stored blocks.
 
 * Python 3.8+ (should be already installed with most Linux distros).
 
@@ -18,8 +31,8 @@ The full node can be pruned, although this will limit the scan possibilities onl
 
 Clone or download the repository.
 
-Open a terminal from the Observatory folder and run `sudo apt install python3-pip` (it may not be necessary),
-then pick one of the two below:
+Open a terminal from the Observatory folder and run `sudo apt install python3-pip` (it may not be necessary), then pick
+one of the two below:
 
 * ### Easy way
 
@@ -38,10 +51,12 @@ cd src
 pip3 install .
 ```
 
-The recommended way is more complex, but it will keep your base system clean.
-If you decide to go for it, remember that you'll have to run `source .env/bin/activate` as first command each time that you want to use the Observatory (check for `(.env)` at the beginning of the lines in your terminal).
+The recommended way is more complex, but it will keep your base system clean. If you decide to go for it, remember that
+you'll have to run `source .env/bin/activate` as first command each time that you want to use the Observatory (check
+for `(.env)` at the beginning of the lines in your terminal).
 
-Lastly, activate the [REST](https://github.com/bitcoin/bitcoin/blob/master/doc/REST-interface.md) server from your full node adding `rest = 1` to your `bitcoin.conf` file (or by passing `-rest` through CLI).
+Lastly, activate the [REST](https://github.com/bitcoin/bitcoin/blob/master/doc/REST-interface.md) server from your full
+node adding `rest = 1` to your `bitcoin.conf` file (or by passing `-rest` through CLI).
 
 ## Usage
 
@@ -71,9 +86,9 @@ optional arguments:
 
 ### Settings
 
-The first thing to do is to create a `settings.toml` file, run any `bobs` command (e.g., `bobs scan`) and ignore the error.
-It should have created the settings file in the same directory as you are in.
-To use a custom directory, pass the `-se` option:
+The first thing to do is to create a `settings.toml` file, run any `bobs` command (e.g., `bobs scan`) and ignore the
+error. It should have created the settings file in the same directory as you are in. To use a custom directory, pass
+the `-se` option:
 
 ```bash
 (.env) home/user/observatory$ bobs -se /home/user/ scan
@@ -81,9 +96,9 @@ To use a custom directory, pass the `-se` option:
 
 ### Filters
 
-Give a look at the `settings.toml` file (more documentation for it is planned), and in particular at the filters. Those are
-collection of criteria that represent the pattern you are looking for.
-The default settings include a few filters that may be helpful as a reference.
+Give a look at the `settings.toml` file (more documentation for it is planned), and in particular at the filters. Those
+are collection of criteria that represent the pattern you are looking for. The default settings include a few filters
+that may be helpful as a reference.
 
 This is the format of each filter:
 
@@ -101,10 +116,11 @@ txid = "Include('')"
 
 * The `filters` part is a constant, it tells `bobs` that you are declaring a new filter.
 * The `name` is completely arbitrary, the only restriction is that is has to be unique per `settings.toml` file.
-* The `key` refers to which part of the transaction you want to pass as candidate to the `criterion`, the complete list is below.
-If the key is invalid, `bobs` will pass the entire transaction.
-* The `criterion` part accepts any of `bobs` criterion, the complete list is below. They all behave very similarly, they accept
-one or more values and represent a characterizing mark or trait that a candidate should have in order to match the `criterion`.
+* The `key` refers to which part of the transaction you want to pass as candidate to the `criterion`, the complete list
+  is below. If the key is invalid, `bobs` will pass the entire transaction.
+* The `criterion` part accepts any of `bobs` criterion, the complete list is below. They all behave very similarly, they
+  accept one or more values and represent a characterizing mark or trait that a candidate should have in order to match
+  the `criterion`.
 
 You can set as many filters as you want, when you are done, you can pass the desired filter names with the `-f` option:
 
@@ -160,12 +176,12 @@ The list should be more or less stable, more documentation is planned.
 
 ### Target
 
-With the `t` or `--target` option you can specify which data structure to target.
-By default, look at the blocks in the longest valid chain (as provided by the full node),
-you can choose to look at the mempool instead by passing `-t mempool`
+With the `t` or `--target` option you can specify which data structure to target. By default, look at the blocks in the
+longest valid chain (as provided by the full node), you can choose to look at the mempool instead by
+passing `-t mempool`
 
 ### Scan
- 
+
 ```bash
 (.env) /home/user/observatory$ bobs scan -h
 usage: bobs scan [-h] [-s START] [-e END]
@@ -200,9 +216,8 @@ Will search for transaction in 5 block starting from ten blocks ago.
 
 ### Details
 
-You can pass the `-d` option to increase the amount of information displayed
-as a result.
-By default, only prints a list of TXIDs that match the filters:
+You can pass the `-d` option to increase the amount of information displayed as a result. By default, only prints a list
+of TXIDs that match the filters:
 
 ```bash
 (.env) /home/user/observatory$ bobs -f coinbase scan -s=-10 -e 0
@@ -272,7 +287,8 @@ Found 10 transaction:
 │ e4063d95d6951870251890d71cb4ab3c415f66ae054a1a7103306fb9ef51e668 │   708807 │ 2021-11-08 16:25 │
 ```
 
-You can pass the option multiple times (e.g, `-ddd` will print detailed information of each transaction, inputs and outputs included).
+You can pass the option multiple times (e.g, `-ddd` will print detailed information of each transaction, inputs and
+outputs included).
 
 ---
 
