@@ -87,7 +87,7 @@ The default settings include a few filters that may be helpful as a reference.
 
 This is the format of each filter:
 
-```toml
+```
 [filters.{name}]
 {key} = "{criterion}"
 ```
