@@ -25,11 +25,11 @@ def get_args() -> Namespace:
                         action='append',
                         type=str,
                         default=[],
-                        help="The name of the filters to use (they have to be declared in settings.toml).")
+                        help="The name of the filters to use (they have to be declared in settings.toml)")
     parser.add_argument('-d',
                         '--details',
                         action='count',
-                        help="Increase table details")
+                        help="Increase result output details, can be set multiple times to amplify the effect")
     parser.add_argument('-t',
                         '--target',
                         type=str,
@@ -44,7 +44,7 @@ def get_args() -> Namespace:
     parser.add_argument('-se',
                         '--settings',
                         type=dir_path,
-                        help="Path to settings.toml file, default is current directory. If file not present, create it.")
+                        help="Path to settings.toml file, default is current directory. If file not present, create it")
 
     subparsers = parser.add_subparsers()
     parser_scan = subparsers.add_parser('scan',

@@ -61,7 +61,7 @@ node adding `rest = 1` to your `bitcoin.conf` file (or by passing `-rest` throug
 ## Usage
 
 ```bash
-(.env) home/user/observatory$ bobs -h
+(.env) /home/user/observatory$ bobs -h
 usage: bobs [-h] [-f FILTERS] [-d] [-t {blocks,mempool}] [-fmt FORMAT] [-se SETTINGS] {scan,monitor} ...
 
 A Bitcoin observatory to monitor and scan given customizable filters
@@ -74,14 +74,14 @@ positional arguments:
 optional arguments:
   -h, --help            show this help message and exit
   -f FILTERS, --filters FILTERS
-                        The name of the filters to use (they have to be declared in settings.toml).
-  -d, --details         Increase table details
+                        The name of the filters to use (they have to be declared in settings.toml)
+  -d, --details         Increase result output details, can be set multiple times to amplify the effect
   -t {blocks,mempool}, --target {blocks,mempool}
                         What to scan, default is `blocks`
   -fmt FORMAT, --format FORMAT
                         Format to pass to tabulate() for table formatting. (default 'fancy_grid')
   -se SETTINGS, --settings SETTINGS
-                        Path to settings.toml file, default is current directory. If file not present, create it.
+                        Path to settings.toml file, default is current directory. If file not present, create it
 ```
 
 ### Settings
