@@ -1,7 +1,7 @@
 # Bobs
 
 Bobs is a Bitcoin OBServatory meant to be easy to use and lightweight, it allows scanning and monitoring of Bitcoin
-related data structure (blocks, mempool, more planned) given customizable filters.  
+related data structures (blocks, mempool, more planned) given customizable filters.  
 It requires no state, runs entirely in memory, and is well suited for pruned nodes.
 
 ## Requirements
