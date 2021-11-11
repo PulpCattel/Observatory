@@ -22,7 +22,8 @@ It requires no state, runs entirely in memory, and is well suited for pruned nod
 * Linux only, tested on Ubuntu and Debian. Should be fairly easy to make it work on Windows or Mac, but I have no
   experience with neither of them.
 
-* [Bitcoin Core](https://github.com/bitcoin/bitcoin). The full node can be pruned, although this will limit the scan
+* [Bitcoin Core](https://github.com/bitcoin/bitcoin) master branch (`bobs` requires [this](https://github.com/bitcoin/bitcoin/pull/22918) recently merged PR).
+The full node can be pruned, although this will limit the scan
   possibilities only to the stored blocks.
 
 * Python 3.8+ (should be already installed with most Linux distros).
