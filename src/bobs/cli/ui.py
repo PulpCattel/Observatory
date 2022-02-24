@@ -1,12 +1,12 @@
 """
-Functions and utilities for managing console user interface
+Functions and utilities to manage the command line interface
 """
 
-from collections import Iterable
 from sys import argv
+from typing import Iterable, Sequence
 
-from bobs.bitcoin.containers import Tx
-from bobs.obs.filters import TxFilter
+from bobs.obs.candidates import TransactionV3, Transaction
+from bobs.types import Filter
 from tabulate import tabulate
 
 HEADERS_TXID_TABLE = ('txid',)
@@ -19,20 +19,28 @@ HEADERS_FULL_DETAIL_TABLE = ('txid', 'version', 'size', 'vsize', 'weight', 'lock
                              'abs fee', 'rel fee', 'height', 'date')
 
 
-def print_greetings(filters: Iterable[TxFilter]) -> None:
-    print('\nChoosen filters:')
+def print_error(title: str, message: str) -> None:
+    """
+    Pretty print errors.
+    TODO: add colors
+    """
+    print(f'#### {title}:')
+    print(message)
+
+
+def print_greetings(filters: Iterable[Filter]) -> None:
+    print('\nChosen filters:')
     for f in filters:
         print(f'\t{f}\n')
-    full_command = ' '.join(argv)
-    print(f'Full command used: {full_command}\n')
+    print(f'Full command used: {" ".join(argv)}\n')
 
 
-def print_result(txs: Iterable[Tx],
+def print_result(txs: Sequence[TransactionV3],
                  details: int,
                  stats: bool = False,  # TODO
                  fmt: str = 'fancy_grid') -> None:
     """
-    Print result table from an iterable of Tx object.
+    Print result table from an iterable of Tx candidates.
     Details represents the amount of information displayed (0, 1, 2, 3).
     If `stats`, an extra table with statistics about the sample will be printed
     right at the top.
@@ -50,14 +58,14 @@ def print_result(txs: Iterable[Tx],
     print("\n")
 
 
-def txid_list(txs: Iterable[Tx]) -> str:
+def txid_list(txs: Iterable) -> str:
     """
     Return a list of TXIDs.
     """
     return '\n'.join(tx.txid for tx in txs)
 
 
-def base_table(txs: Iterable[Tx], fmt: str) -> str:
+def base_table(txs: Iterable, fmt: str) -> str:
     """
     Return a table with basic information about each transaction.
     """
@@ -66,7 +74,7 @@ def base_table(txs: Iterable[Tx], fmt: str) -> str:
                     tablefmt=fmt)
 
 
-def detailed_table(txs: Iterable[Tx], fmt: str) -> str:
+def detailed_table(txs: Iterable, fmt: str) -> str:
     """
     Return a table with most of the details of each transaction.
     """
@@ -76,32 +84,32 @@ def detailed_table(txs: Iterable[Tx], fmt: str) -> str:
                     tablefmt=fmt)
 
 
-def inputs_table(tx: Tx, fmt: str) -> str:
+def inputs_table(tx: TransactionV3, fmt: str) -> str:
     """
     Return table with all transaction inputs information.
     """
     if tx.is_coinbase:
-        return tabulate(((None, None, None, None, None, None, tx_input.sequence) for tx_input in tx.inputs),
+        return tabulate(((None, None, None, None, None, None, tx_input['sequence']) for tx_input in tx.inputs),
                         headers=HEADERS_INPUTS_TABLE,
                         tablefmt=fmt)
-    return tabulate(((tx_input.txid, tx_input.height, tx_input.prevout.value,
-                      tx_input.prevout.vout, tx_input.prevout.address,
-                      tx_input.prevout.type, tx_input.sequence) for tx_input in tx.inputs),
+    return tabulate(((tx_input['txid'], tx_input['prevout']['height'], tx_input['prevout']['value'],
+                      tx_input['vout'], tx_input['prevout']['scriptPubKey']['address'],
+                      tx_input['prevout']['scriptPubKey']['type'], tx_input['sequence']) for tx_input in tx.inputs),
                     headers=HEADERS_INPUTS_TABLE,
                     tablefmt=fmt)
 
 
-def outputs_table(tx: Tx, fmt: str) -> str:
+def outputs_table(tx: Transaction, fmt: str) -> str:
     """
     Return table with all transaction inputs information.
     """
-    return tabulate(((tx_output.value, tx_output.vout, tx_output.address,
-                      tx_output.type) for tx_output in tx.outputs),
+    return tabulate(((tx_output['value'], tx_output['n'], tx_output['scriptPubKey'].get('address', ''),
+                      tx_output['scriptPubKey']['type']) for tx_output in tx.outputs),
                     headers=HEADERS_OUTPUTS_TABLE,
                     tablefmt=fmt)
 
 
-def full_detail_table(txs: Iterable[Tx], fmt: str) -> None:
+def full_detail_table(txs: Iterable[TransactionV3], fmt: str) -> None:
     """
     Print multiple tables with all the details of each transaction plus inputs and outputs information.
     """
@@ -114,4 +122,4 @@ def full_detail_table(txs: Iterable[Tx], fmt: str) -> None:
         print(f'\n### {tx.n_in} inputs\n')
         print(inputs_table(tx, fmt))
         print(f'\n### {tx.n_out} outputs\n')
-        print(outputs_table(tx, fmt), '\n')
+        print(outputs_table(tx, fmt))

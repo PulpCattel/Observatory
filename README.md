@@ -1,5 +1,7 @@
 # Bobs
 
+*To look and observe what is actually happening on Bitcoin*
+
 Bobs is a Bitcoin OBServatory meant to be easy to use and lightweight, it allows scanning and monitoring of Bitcoin
 related data structures (blocks, mempool, more planned) given customizable filters.  
 It requires no state, runs entirely in memory, and is well suited for pruned nodes.
@@ -8,6 +10,7 @@ It requires no state, runs entirely in memory, and is well suited for pruned nod
 * [Setup](#Setup)
     * [Easy way](#Easy-way)
     * [Recommended way](#Recommended-way)
+* [Quickstart](#Quickstart)
 * [Usage](#Usage)
     * [Settings](#Settings)
     * [Filters](#Filters)
@@ -19,12 +22,10 @@ It requires no state, runs entirely in memory, and is well suited for pruned nod
 
 ## Requirements
 
-* Linux only, tested on Ubuntu and Debian. Should be fairly easy to make it work on Windows or Mac, but I have no
-  experience with neither of them.
+* Linux only, tested on Ubuntu and Debian. (Should be fairly easy to make it work on Windows or Mac)
 
-* [Bitcoin Core](https://github.com/bitcoin/bitcoin) master branch (`bobs` requires [this](https://github.com/bitcoin/bitcoin/pull/22918) recently merged PR).
-The full node can be pruned, although this will limit the scan
-  possibilities only to the stored blocks.
+* [Bitcoin Core](https://github.com/bitcoin/bitcoin) version equal or above [23] (`bobs` requires [this](https://github.com/bitcoin/bitcoin/pull/22918) functionality).
+The full node can be pruned, although this will limit the scan possibilities only to the stored blocks.
 
 * Python 3.8+ (should be already installed with most Linux distros).
 
@@ -38,8 +39,7 @@ one of the two below:
 * ### Easy way
 
 ```bash
-cd src
-python3 -m pip install .
+python3 -m pip install -e src/.
 ```
 
 * ### Recommended way
@@ -48,8 +48,7 @@ python3 -m pip install .
 sudo apt install python3-venv
 python3 -m venv .env
 source .env/bin/activate
-cd src
-pip3 install .
+pip3 install -e src/.
 ```
 
 The recommended way is more complex, but it will keep your base system clean. If you decide to go for it, remember that
@@ -58,6 +57,8 @@ for `(.env)` at the beginning of the lines in your terminal).
 
 Lastly, activate the [REST](https://github.com/bitcoin/bitcoin/blob/master/doc/REST-interface.md) server from your full
 node adding `rest = 1` to your `bitcoin.conf` file (or by passing `-rest` through CLI).
+
+## Quickstart
 
 ## Usage
 
@@ -117,8 +118,8 @@ txid = "Include('ff821fea070bed1220')"
 
 * The `filters` part is a constant, it tells `bobs` that you are declaring a new filter.
 * The `name` is completely arbitrary, the only restriction is that is has to be unique per `settings.toml` file.
-* The `key` refers to which part of the transaction you want to pass as candidate to the `criterion`, the complete list
-  is below. If the key is invalid, `bobs` will pass the entire transaction.
+* The `key` refers to which part of the candidate you want to pass as the actual candidate to the `criterion`, the complete list
+  is below. If the key is invalid, `bobs` will pass the entire candidate.
 * The `criterion` part accepts any of `bobs` criterion, the complete list is below. They all behave very similarly, they
   accept one or more values and represent a characterizing mark or trait that a candidate should have in order to match
   the `criterion`.

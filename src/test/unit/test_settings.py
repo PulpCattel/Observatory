@@ -1,20 +1,19 @@
 """
 Test settings creation and handling
 """
-from bobs.obs.filters import Include, Equal, Greater
+from bobs.obs.criteria import Include, Equal, Greater
 from bobs.settings import Settings
 from marshmallow import ValidationError
 from pytest import raises
 from toml import loads
 
 
-def test_settings():
+def test_settings() -> None:
     """
     Test Settings Model
     """
     settings = Settings.from_default()
     assert settings['general']['logging'] == 'warning'
-    assert settings['limits']['concurrency_limit'] == 3
     assert settings['limits']['memory_limit'] == 80
     assert settings['network']['endpoint'] == "http://127.0.0.1:8332"
     assert settings['scan']['force'] is False
@@ -25,11 +24,13 @@ def test_settings():
     assert settings['filters']['huge_vsize'] == {'vsize': Greater(50000)}
 
 
-def test_malformed():
+def test_malformed() -> None:
     """
     Test Settings Model correctly catches malformed TOML configuration file
     """
-    malformed_toml = """[general]
-    logging = 'warning'"""
+    malformed_toml = """
+    [general]
+    logging = 'warning'
+    """
     with raises(ValidationError):
         Settings().load(loads(malformed_toml))

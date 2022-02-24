@@ -6,7 +6,7 @@ from argparse import ArgumentParser, Namespace, ArgumentTypeError
 from os.path import isdir
 
 
-def dir_path(path):
+def dir_path(path: str) -> str:
     """
     Check given path actually corresponds to a directory
     """
@@ -17,15 +17,16 @@ def dir_path(path):
 
 def get_args() -> Namespace:
     """
-    ArgumentParser for Bobs
+    Parse and return command line arguments.
     """
     parser = ArgumentParser(description='A Bitcoin observatory to monitor and scan given customizable filters')
     parser.add_argument('-f',
-                        '--filters',
+                        '--filter',
                         action='append',
                         type=str,
                         default=[],
-                        help="The name of the filters to use (they have to be declared in settings.toml)")
+                        help="The name of the filter to use (it has to be declared in settings.toml),"
+                             " can be set multiple times")
     parser.add_argument('-d',
                         '--details',
                         action='count',
@@ -35,7 +36,13 @@ def get_args() -> Namespace:
                         type=str,
                         choices=['blocks', 'mempool'],
                         default='blocks',
-                        help='What to scan, default is `blocks`')
+                        help='What structure to look at, default is `blocks`')
+    parser.add_argument('-c',
+                        '--candidate',
+                        type=str,
+                        choices=['block', 'blockv3', 'tx', 'txv2', 'txv3'],
+                        default='txv3',
+                        help='The object to compare against the criteria')
     parser.add_argument('-fmt',
                         '--format',
                         type=str,
@@ -45,6 +52,12 @@ def get_args() -> Namespace:
                         '--settings',
                         type=dir_path,
                         help="Path to settings.toml file, default is current directory. If file not present, create it")
+    parser.add_argument('-fa',
+                        '--favorite',
+                        type=str,
+                        default='',
+                        help="Use one of the favorite from settings, this overrides all other options."
+                             "Currently not implemented")
 
     subparsers = parser.add_subparsers()
     parser_scan = subparsers.add_parser('scan',

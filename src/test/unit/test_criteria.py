@@ -1,47 +1,58 @@
 """
-Test Criteria and Filters
+Criteria objects unit tests
 """
 from re import compile as re_compile
+from typing import Union, List, Set
 
-from _pytest.python_api import raises
-from bobs.bitcoin.containers import Tx
-from bobs.obs.filters import CriterionField, Greater, Regex, TxFilter, Include, Equal, Different, Lesser, Between, \
+import pytest
+from bobs.obs.criteria import CriterionField, Greater, Regex, Include, Equal, Different, Lesser, Between, \
     Appear, Satisfy
-from bobs.tests.data import SIMPLE_TX
+from bobs.types import DrawObject
 from hypothesis import given, strategies as st
 from marshmallow import ValidationError
 
 
+# pylint: disable=protected-access
+
+
 @given(st.integers(), st.integers())
-def test_greater(value, candidate):
+def test_greater(value: int, candidate: int) -> None:
     greater = Greater(value)
-    if candidate >= value:
-        assert greater(candidate)
-    if candidate < value:
-        assert not greater(candidate)
-    greater = Greater(value, inclusive=False)
+    if candidate == value:
+        assert greater(candidate) is True
     if candidate > value:
-        assert greater(candidate)
-    if candidate <= value:
-        assert not greater(candidate)
+        assert greater(candidate) is True
+    if candidate < value:
+        assert greater(candidate) is False
+    greater = Greater(value, inclusive=False)
+    if candidate == value:
+        assert greater(candidate) is False
+    if candidate > value:
+        assert greater(candidate) is True
+    if candidate < value:
+        assert greater(candidate) is False
 
 
 @given(st.integers(), st.integers())
-def test_lesser(value, candidate):
+def test_lesser(value: int, candidate: int) -> None:
     lesser = Lesser(value)
-    if candidate <= value:
-        assert lesser(candidate)
-    if candidate > value:
-        assert not lesser(candidate)
-    lesser = Lesser(value, inclusive=False)
+    if candidate == value:
+        assert lesser(candidate) is True
     if candidate < value:
-        assert lesser(candidate)
-    if candidate >= value:
-        assert not lesser(candidate)
+        assert lesser(candidate) is True
+    if candidate > value:
+        assert lesser(candidate) is False
+    lesser = Lesser(value, inclusive=False)
+    if candidate == value:
+        assert lesser(candidate) is False
+    if candidate < value:
+        assert lesser(candidate) is True
+    if candidate > value:
+        assert lesser(candidate) is False
 
 
 @given(st.integers(), st.integers(), st.integers())
-def test_between(min_, max_, candidate):
+def test_between(min_: int, max_: int, candidate: int) -> None:
     between = Between(min_, max_)
     if min_ <= candidate <= max_:
         assert between(candidate) is True
@@ -55,7 +66,7 @@ def test_between(min_, max_, candidate):
 
 
 @given(st.text(), st.text())
-def test_equal(value, candidate):
+def test_equal(value: str, candidate: str) -> None:
     equal = Equal(value)
     if candidate == value:
         assert equal(candidate) is True
@@ -64,7 +75,7 @@ def test_equal(value, candidate):
 
 
 @given(st.text(), st.text())
-def test_different(value, candidate):
+def test_different(value: str, candidate: str) -> None:
     different = Different(value)
     if candidate != value:
         assert different(candidate) is True
@@ -73,9 +84,10 @@ def test_different(value, candidate):
 
 
 @given(st.data())
-def test_include(data):
-    value = data.draw(st.one_of(st.integers(), st.text()))
+def test_include(data: DrawObject) -> None:
+    value: Union[int, str] = data.draw(st.one_of(st.integers(), st.text()))
     include = Include(value)
+    candidate: Union[List[int], Set[int], str]
     if isinstance(value, int):
         candidate = data.draw(st.one_of(st.lists(st.integers()), st.sets(st.integers())))
     else:
@@ -87,7 +99,7 @@ def test_include(data):
 
 
 @given(st.one_of(st.text(), st.lists(st.text())), st.text())
-def test_appear(value, candidate):
+def test_appear(value: Union[str, List[str]], candidate: str) -> None:
     appear = Appear(value)
     if candidate in value:
         assert appear(candidate) is True
@@ -96,8 +108,8 @@ def test_appear(value, candidate):
 
 
 @given(st.integers())
-def test_satisfy(candidate):
-    def example_callable(num: int) -> int:
+def test_satisfy(candidate: int) -> None:
+    def example_callable(num: int) -> bool:
         return num + 1 == 1
 
     satisfy = Satisfy(example_callable)
@@ -108,42 +120,30 @@ def test_satisfy(candidate):
 
 
 @given(st.text())
-def test_regex(candidate):
+def test_regex(candidate: str) -> None:
     value = r'\d'
     pattern = re_compile(value)
     regex = Regex(value)
     if pattern.search(candidate) is not None:
-        assert regex(candidate)
+        assert regex(candidate) is True
     else:
-        assert not regex(candidate)
+        assert regex(candidate) is False
 
 
-def test_restricted_eval():
+def test_deserialize() -> None:
+    str_criterion = "Greater(5)"
+    assert CriterionField()._deserialize(str_criterion, '', {}) == Greater(5)
+    invalid_criterion = 'Invalid'
+    with pytest.raises(ValidationError):
+        CriterionField()._deserialize(invalid_criterion, '', {})
+
+
+def test_restricted_eval() -> None:
     forbidden_string = "len([1, 2, 3])"
-    with raises(ValidationError):
+    with pytest.raises(ValidationError):
         CriterionField._restricted_eval(forbidden_string)
     forbidden_string = "''.__class__"
-    with raises(ValidationError):
+    with pytest.raises(ValidationError):
         CriterionField._restricted_eval(forbidden_string)
     accepted_string = "Greater(5)"
     assert Greater(5) == CriterionField._restricted_eval(accepted_string)
-
-
-def test_tx_filter():
-    tx = Tx(SIMPLE_TX, 1000, 1000)
-    tx_filter = TxFilter({'txid': Regex(r'\d\d')})
-    assert tx_filter.match(tx)
-    tx_filter = TxFilter({'txid': Include('664db4244663bcf32cada759279a840c')})
-    assert tx_filter.match(tx)
-    tx_filter = TxFilter({'size': Equal(381)})
-    assert tx_filter.match(tx)
-    tx_filter = TxFilter({'size': Different(381)})
-    assert not tx_filter.match(tx)
-    tx_filter = TxFilter({'input_values': Include(5071416)})
-    assert tx_filter.match(tx)
-    tx_filter = TxFilter({'input_values': Include(5071415)})
-    assert not tx_filter.match(tx)
-    tx_filter = TxFilter({'abs_fee': Greater(90000)})
-    assert tx_filter.match(tx)
-    tx_filter = TxFilter({'abs_fee': Lesser(90000)})
-    assert tx_filter.match(tx)

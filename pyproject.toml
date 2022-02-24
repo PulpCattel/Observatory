@@ -1,5 +1,57 @@
+[build-system]
+requires = ["setuptools", 'wheel']
+build-backend = "setuptools.build_meta"
+
 [tool.pytest.ini_options]
 markers = [
-    "require_rest: marks test that require a running Bitcoin Core with the REST server (deselect with `-m 'not require_rest'`)",
-    "developing: marks test to run independently while developing",
+    'functional: marks the functional tests',
+    'require_rest: marks tests that require a running Bitcoin Core with the REST server',
+    'developing: marks tests to run independently while developing',
+    'mypy: marks tests related to mypy type checking',
+    'pylint: marks tests related to pylint static PEP8 style checking',
 ]
+addopts = [
+    # Run tests in docstrings by default
+    # https://docs.pytest.org/en/7.1.x/how-to/doctest.html
+    '--doctest-modules',
+    '-v',
+    # Show 5 slowest tests
+    '--durations=5',
+    '--strict-config',
+    '--strict-markers',
+    '--asyncio-mode=strict',
+    '--hypothesis-verbosity=verbose',
+    # Too verbose, useful when adding new tests
+#    '--hypothesis-show-statistics',
+    '--hypothesis-explain',
+    '--color=yes'
+]
+
+[tool.mypy]
+# https://mypy.readthedocs.io/en/latest/config_file.html#config-file
+python_version = 3.8
+show_error_codes = true
+pretty = true
+strict = true
+disallow_any_unimported = true
+disallow_any_explicit = true
+warn_redundant_casts = true
+warn_unreachable = true
+disallow_any_decorated = true
+# TODO, fix it
+exclude = ['ui.py']
+# This is too strict, can be enabled selectively in submodules.
+#disallow_any_expr = true
+
+# mypy per-module options:
+
+[[tool.mypy.overrides]]
+module = 'bobs.types'
+# The only explicit Any allowed are in the types.py module.
+disallow_any_explicit = false
+
+[[tool.mypy.overrides]]
+module = 'bobs.obs.criteria'
+# This module is extremely generic and reusable by desing.
+# To avoid type-hinting hell.
+no_warn_return_any = true

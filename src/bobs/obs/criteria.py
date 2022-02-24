@@ -1,16 +1,16 @@
 """
 Modules for filters and criteria
 """
+from abc import ABC, abstractmethod
 from enum import Enum
-from itertools import starmap
 from re import compile as re_compile
-from typing import Any, Callable, Optional, Mapping, Dict
+from typing import Callable, Optional, Mapping, AnyStr, Dict, Type, Tuple, cast, Pattern
 
-from bobs.bitcoin.containers import Tx
+from bobs.types import Any_
 from marshmallow import fields, ValidationError
 
 
-class Criterion:
+class Criterion(ABC):
     """
     A Criterion represents characterizing marks or traits
     that a candidate should have in order to match the Criterion.
@@ -19,16 +19,19 @@ class Criterion:
 
     __slots__ = ()
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any_) -> bool:
+        """
+        Most useful for testing purposes.
+        """
         if not isinstance(other, self.__class__) or self.__slots__ != other.__slots__:
             return False
-        return all(getattr(self, attr) == getattr(other, attr) for attr in self.__slots__)
+        return all(getattr(self, attr) == getattr(other, attr) for attr in cast(Tuple[str], self.__slots__))
 
-    def __call__(self, candidate: Any) -> bool:
+    @abstractmethod
+    def __call__(self, candidate: Any_) -> bool:
         """
         Call this Criterion on a candidate, if the candidate matches the Criterion, return True, else False.
         """
-        raise NotImplementedError("Override this method in subclasses.")
 
 
 class Greater(Criterion):
@@ -50,16 +53,16 @@ class Greater(Criterion):
     False
     """
 
-    __slots__ = ('value', 'inclusive')
+    __slots__ = ('_value', '_inclusive')
 
-    def __init__(self, value: Any, inclusive: bool = True):
-        self.value = value
-        self.inclusive = inclusive
+    def __init__(self, value: Any_, inclusive: bool = True) -> None:
+        self._value = value
+        self._inclusive = inclusive
 
-    def __call__(self, candidate: Any) -> bool:
-        if self.inclusive:
-            return candidate >= self.value
-        return candidate > self.value
+    def __call__(self, candidate: Any_) -> bool:
+        if self._inclusive:
+            return candidate >= self._value
+        return candidate > self._value
 
 
 class Lesser(Criterion):
@@ -81,16 +84,16 @@ class Lesser(Criterion):
     True
     """
 
-    __slots__ = ('value', 'inclusive')
+    __slots__ = ('_value', '_inclusive')
 
-    def __init__(self, value: Any, inclusive: bool = True):
-        self.value = value
-        self.inclusive = inclusive
+    def __init__(self, value: Any_, inclusive: bool = True) -> None:
+        self._value = value
+        self._inclusive = inclusive
 
-    def __call__(self, candidate: Any) -> bool:
-        if self.inclusive:
-            return candidate <= self.value
-        return candidate < self.value
+    def __call__(self, candidate: Any_) -> bool:
+        if self._inclusive:
+            return candidate <= self._value
+        return candidate < self._value
 
 
 class Between(Criterion):
@@ -112,14 +115,17 @@ class Between(Criterion):
     False
     """
 
-    __slots__ = ('greater', 'lesser')
+    __slots__ = ('_min', '_max', '_inclusive')
 
-    def __init__(self, min_: Any, max_: Any, inclusive: bool = True):
-        self.greater = Greater(min_, inclusive)
-        self.lesser = Lesser(max_, inclusive)
+    def __init__(self, min_: Any_, max_: Any_, inclusive: bool = True) -> None:
+        self._min = min_
+        self._max = max_
+        self._inclusive = inclusive
 
-    def __call__(self, candidate: Any) -> bool:
-        return self.greater(candidate) and self.lesser(candidate)
+    def __call__(self, candidate: Any_) -> bool:
+        if self._inclusive:
+            return self._min <= candidate <= self._max
+        return self._min < candidate < self._max
 
 
 class Equal(Criterion):
@@ -135,13 +141,13 @@ class Equal(Criterion):
     False
     """
 
-    __slots__ = ('value',)
+    __slots__ = ('_value',)
 
-    def __init__(self, value: Any):
-        self.value = value
+    def __init__(self, value: Any_) -> None:
+        self._value = value
 
-    def __call__(self, candidate: Any) -> bool:
-        return candidate == self.value
+    def __call__(self, candidate: Any_) -> bool:
+        return candidate == self._value
 
 
 class Different(Criterion):
@@ -157,13 +163,13 @@ class Different(Criterion):
     False
     """
 
-    __slots__ = ('equal',)
+    __slots__ = ('_value',)
 
-    def __init__(self, value: Any):
-        self.equal = Equal(value)
+    def __init__(self, value: Any_) -> None:
+        self._value = value
 
-    def __call__(self, candidate: Any) -> bool:
-        return not self.equal(candidate)
+    def __call__(self, candidate: Any_) -> bool:
+        return candidate != self._value
 
 
 class Include(Criterion):
@@ -179,13 +185,13 @@ class Include(Criterion):
     False
     """
 
-    __slots__ = ('value',)
+    __slots__ = ('_value',)
 
-    def __init__(self, value: Any):
-        self.value = value
+    def __init__(self, value: Any_) -> None:
+        self._value = value
 
-    def __call__(self, candidate: Any) -> bool:
-        return self.value in candidate
+    def __call__(self, candidate: Any_) -> bool:
+        return self._value in candidate
 
 
 class Appear(Criterion):
@@ -201,13 +207,13 @@ class Appear(Criterion):
     False
     """
 
-    __slots__ = ('value',)
+    __slots__ = ('_value',)
 
-    def __init__(self, value: Any):
-        self.value = value
+    def __init__(self, value: Any_) -> None:
+        self._value = value
 
-    def __call__(self, candidate: Any) -> bool:
-        return candidate in self.value
+    def __call__(self, candidate: Any_) -> bool:
+        return candidate in self._value
 
 
 class Satisfy(Criterion):
@@ -223,33 +229,35 @@ class Satisfy(Criterion):
     False
     """
 
-    __slots__ = ('value',)
+    __slots__ = ('_value',)
 
-    def __init__(self, value: Callable):
-        self.value = value
+    def __init__(self, value: Callable[[Any_], bool]) -> None:
+        self._value = value
 
-    def __call__(self, candidate: Any) -> bool:
-        return self.value(candidate)
+    def __call__(self, candidate: Any_) -> bool:
+        return self._value(candidate)
 
 
 class Regex(Criterion):
     """
     A criterion that represents a regex search.
 
-    >>> regex = Regex(r'\d\d')
+    >>> regex = Regex(r'12')
     >>> regex('123')
     True
     >>> regex('abc')
     False
     """
 
-    __slots__ = ('value',)
+    __slots__ = ('_value',)
 
-    def __init__(self, value: str):
-        self.value = re_compile(value)
+    def __init__(self, value: AnyStr) -> None:
+        self._value: Pattern[AnyStr] = re_compile(value)  # type: ignore[arg-type] # it complaints about the string type
+        # TODO: fix
 
-    def __call__(self, candidate) -> bool:
-        return bool(self.value.search(candidate))
+    def __call__(self, candidate: AnyStr) -> bool:
+        return self._value.search(candidate) is not None  # type: ignore[arg-type] # it complaints about the string type
+        # TODO: fix
 
 
 class CriterionType(Enum):
@@ -272,22 +280,23 @@ class CriterionField(fields.Field):
     @staticmethod
     def _restricted_eval(string: str) -> Criterion:
         """
-        Only CriterionType is accepted
+        Only CriterionTypes are accepted.
         """
-        whitelisted_names = {member.value.__name__: member.value for member in CriterionType}
+        whitelisted_names: Dict[str, Type[Criterion]] = {member.value.__name__: member.value for member in
+                                                         CriterionType}
         code = compile(string, "<string>", "eval")
         for name in code.co_names:
             if name in whitelisted_names:
                 continue
             raise ValidationError(f"Use of `{name}` not allowed")
-        return eval(code, {"__builtins__": {}}, whitelisted_names)
+        return eval(code, {"__builtins__": {}}, whitelisted_names)  # pylint: disable=eval-used
 
     def _deserialize(
             self,
             value: str,
             attr: Optional[str],
-            data: Optional[Mapping[str, Any]],
-            **kwargs,
+            data: Optional[Mapping[str, Any_]],
+            **kwargs: Any_,
     ) -> Criterion:
         """
         Transform a string representation of a Criterion into a Criterion instance
@@ -296,39 +305,5 @@ class CriterionField(fields.Field):
         """
         value = value.strip()
         if value.startswith("Satisfy"):
-            return eval(value)
+            return eval(value)  # pylint: disable=eval-used
         return self._restricted_eval(value)
-
-
-class TxFilter:
-    """
-    Collection of Criterion, with method to conveniently match those to a candidate.
-    """
-
-    __slots__ = ('title', 'criteria', '_current_candidate')
-
-    def __init__(self, criteria: Dict[str, Any], title: str = 'Tx filter'):
-        self.title = title
-        self.criteria = criteria
-        self._current_candidate: Optional[Tx] = None
-
-    def __str__(self):
-        return f'{self.title} filter'
-
-    def match(self, candidate: Tx, match_all: bool = True) -> bool:
-        """
-        Return True if the candidate match all/any criterion in the filter depending
-        on `match_all`.
-        """
-        self._current_candidate = candidate
-        matches = starmap(self._match_criterion, self.criteria.items())
-        return all(matches) if match_all else any(matches)
-
-    def _match_criterion(self, id_: str, criterion: Criterion) -> bool:
-        """
-        Return True if the given `criterion` satisfies filter candidate.
-        """
-        try:
-            return criterion(self._current_candidate[id_])
-        except (KeyError, AttributeError):
-            return criterion(self._current_candidate)
