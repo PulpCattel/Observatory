@@ -32,6 +32,8 @@ match_all = false # If `true`, when multiple filters are used, *all* have to mat
 [favorites]
 # Add here your favorite options, as you would type them in the command line, and give them a unique name.
 # You can then just do, e.g., `bobs -fa jm` to use it.
+# The only exception is you can't use the -se option inside the favorite, if you need it use it as:
+# `bobs -fa jm -se /my/path/to/settings`
 jm = '-ddd -f joinmarket scan -s -100 -e 0'
 
 [filters.coinbase]
@@ -47,8 +49,7 @@ addresses = "Include('')" # Insert address between inner quotes.
 vsize = "Greater(50000)"
 
 [filters.huge_amount]
-total_in = "Greater(1000*1e8)"
-total_out = "Greater(1000*1e8)"
+total_in = "Greater(1000)"
 
 [filters.joinmarket]
 n_eq = "Greater(3)"
@@ -56,7 +57,7 @@ _ = "Satisfy(lambda tx: tx.n_out in [tx.n_eq*2, tx.n_eq*2-1] and tx.n_in >= tx.n
 
 [filters.wasabi_legacy]
 n_eq = "Greater(5)"
-den = "Between(8900000, 11000000)"
+den = "Between(0.089, 0.11)"
 _ = "Satisfy(lambda tx: tx.n_in >= tx.n_eq)"
 __ = "Satisfy(lambda tx: all(t == 'witness_v0_keyhash' for t in tx.types))"
 '''.strip()

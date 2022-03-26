@@ -35,6 +35,9 @@ def scan_blocks(start: int,
         raise ValueError(f'Invalid candidate {candidate_id}')
     with target(endpoint=endpoint, start=start, end=end) as target_:
         policy = all if settings['filtering']['match_all'] else any
+        if not filters:
+            # If no filters are selected, every candidate is yielded
+            policy = all
         candidate: Candidate
         for candidate in tqdm(target_.candidates,
                               miniters=1,
@@ -58,6 +61,8 @@ def scan_mem(settings: Toml,
         raise ValueError(f'Invalid candidate {candidate_id}')
     with target(endpoint=settings['network']['endpoint']) as target_:
         policy = all if settings['filtering']['match_all'] else any
+        if not filters:
+            policy = all
         candidate: Candidate
         for candidate in tqdm(target_.candidates):
             if policy(map(candidate, filters)):
