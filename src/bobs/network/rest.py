@@ -10,10 +10,6 @@ from aiohttp import ClientSession, ClientTimeout, ClientResponse
 from bobs.types import RestUriArg, Json
 from orjson import loads
 
-BASE_CURL_ARGS = (
-    '--compressed', '--tr-encoding', '-Z', '--parallel-max', '8', '--parallel-immediate', '--raw', '--no-buffer',
-    '--fail-early')
-
 HEADERS = {'User-Agent': 'bobs',
            'content-type': 'application/json'}
 TIMEOUT = 15
@@ -80,8 +76,7 @@ class Rest:
         """
         Initialize asynchronous REST client, if no session is provided,
         aiohttp.ClientSession() is used. If no `endpoint` is provided,
-        Bitcoin Core default one is used. Kwargs argument will be passed
-        to aiohttp.ClientSession().
+        Bitcoin Core default one is used.
         Can be used with async context manager to cleanly close the session.
         """
         self._session = session if session else ClientSession(headers=HEADERS,
