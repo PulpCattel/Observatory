@@ -5,7 +5,7 @@ Bobs setup file.
 from setuptools import setup
 
 REQUIRED_DEPS = [
-    'aiohttp[speedups]', 'orjson', ' types-chardet', ' types-toml', 'types-orjson', 'typing-extensions',
+    'aiohttp[speedups]', 'orjson', ' types-chardet', 'toml', 'types-toml', 'types-orjson', 'typing-extensions',
     'types-tabulate', 'marshmallow', 'tqdm', 'tabulate', 'psutil'
 ]
 EXTRA_DEPS = {
