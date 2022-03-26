@@ -7,10 +7,10 @@ from shlex import split
 from shutil import which
 from subprocess import check_output, CalledProcessError
 
-# For now we check only the Bobs package.
-# Eventually we want to check the entire /src directory.
 from pytest import mark
 
+# For now we check only the Bobs package.
+# Eventually we want to check the entire /src directory.
 FILES = ('src/bobs',)
 COMMAND = split(f"{which('mypy')} {' '.join(FILES)}")
 
