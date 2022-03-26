@@ -178,9 +178,9 @@ The list should be more or less stable, more documentation is planned.
 
 ### Target
 
-With the `-t` or `--target` option you can specify which data structure to target. By default, it looks at the blocks in the
-longest valid chain (as provided by the full node), you can choose to look at the mempool instead by
-passing `-t mempool`
+With the `-t` or `--target` option you can specify which data structure to target. By default, it looks at the blocks 
+in the most-work fully-validated chain (as provided by the full node), you can choose to look at the mempool instead by
+passing `-t mempool`.
 
 ### Scan
 
