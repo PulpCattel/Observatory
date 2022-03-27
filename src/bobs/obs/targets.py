@@ -85,17 +85,17 @@ class Target(ABC):
         The main gatherer worker.
         """
 
-    def _get_buffers(self) -> Iterator[Bytes]:
+    def _get_buffers(self, block: bool = True, timeout: Optional[float] = None) -> Iterator[Bytes]:
         """
         Compute and return a bytearray with the next complete buffer of bytes from the result Queue.
         This is the concatenation of all chunks until a b'' chunk is found.
         Subclasses should reimplement if needed to add custom logic.
 
-        This blocks until something is put in the result Queue.
+        If `block` is True, this blocks until something is put in the result Queue.
         """
         buffer = bytearray()
         while True:
-            chunk = self._result_queue.get()
+            chunk = self._result_queue.get(block=block, timeout=timeout)
             if chunk == b'':
                 yield buffer
                 buffer = bytearray()
@@ -236,7 +236,7 @@ class MempoolTxsV2(Target):
             await gather(*tasks)
         self._result_queue.put_nowait(b'END')
 
-    def _get_buffers(self) -> Iterator[bytes]:
+    def _get_buffers(self, block: bool = True, timeout: Optional[float] = None) -> Iterator[bytes]:
         while True:
             buffer = self._result_queue.get()
             if buffer == b'END':
@@ -293,7 +293,3 @@ class MempoolTxsV3(MempoolTxsV2):
             tasks = (create_task(task(txid, data)) for txid, data in (await rest.get_mempool(True)).items())
             await gather(*tasks)
         self._result_queue.put_nowait(b'END')
-
-    def _get_raw_candidates(self) -> Iterator[Json]:
-        for buffer in self._get_buffers():
-            yield loads(buffer)
