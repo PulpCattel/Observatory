@@ -13,6 +13,7 @@ from bobs.network.rest import Rest, RestApi
 from bobs.obs.candidates import Candidate, BlockV3, Block, MempoolTx, MempoolTxV2, MempoolTxV3, TransactionV3
 from bobs.types import Json, RawData, Bytes, Any_
 from orjson import loads, dumps
+from psutil import pid_exists  # type: ignore[import] # no type-hinting
 
 
 class Target(ABC):
@@ -42,7 +43,7 @@ class Target(ABC):
         # find a way to solve it because Pipe() would be the best solution.
         self._result_queue: Queue[bytes] = Queue()
         self._gatherer: Process = Process(target=self._gatherer_process,
-                                          name='Gatherer')
+                                          name='gatherer')
         self._start()
 
     def __enter__(self) -> 'Target':
@@ -58,19 +59,23 @@ class Target(ABC):
         if self._gatherer.is_alive():
             raise RuntimeError('Cannot start an already running Gatherer')
         self._gatherer.start()
-        if not self._gatherer.is_alive():
+        if not (self._gatherer.is_alive() and pid_exists(self._gatherer.pid)):
             raise RuntimeError("Gatherer process couldn't start")
 
     def _stop(self) -> None:
         """
         Stop gatherer process and close result Queue.
         """
+        pid = self._gatherer.pid
         self._result_queue.close()
         self._gatherer.terminate()
         self._gatherer.join(self._TIMEOUT)
         if self._gatherer.is_alive():
             self._gatherer.kill()
-            self._gatherer.join()
+            self._gatherer.join(self._TIMEOUT)
+        # Make sure it doesn't still run as a zombie
+        if pid_exists(pid):
+            raise RuntimeError(f'Unable to stop {self._gatherer.name} process with pid: {pid}')
 
     def _gatherer_process(self) -> None:
         """
@@ -159,7 +164,7 @@ class Blocks(Target):
         async with Rest(endpoint=self.endpoint) as rest:
             tasks = (create_task(task(height)) for height in range(self._start_height, self._end_height + 1))
             await gather(*tasks)
-        self._result_queue.put_nowait(b'END')
+            self._result_queue.put_nowait(b'END')
 
 
 class BlocksV3(Blocks):
@@ -204,6 +209,7 @@ class MempoolTxs(Target):
             async for chunk in await rest.get_chunks(RestApi.MEMPOOL_CONTENT):
                 self._result_queue.put_nowait(chunk)
             self._result_queue.put_nowait(b'')
+            self._result_queue.put_nowait(b'END')
 
     def _get_raw_candidates(self) -> Iterator[Json]:
         try:
@@ -234,7 +240,7 @@ class MempoolTxsV2(Target):
         async with Rest(endpoint=self.endpoint) as rest:
             tasks = (create_task(task(txid, data)) for txid, data in (await rest.get_mempool(True)).items())
             await gather(*tasks)
-        self._result_queue.put_nowait(b'END')
+            self._result_queue.put_nowait(b'END')
 
     def _get_buffers(self, block: bool = True, timeout: Optional[float] = None) -> Iterator[bytes]:
         while True:
@@ -286,10 +292,13 @@ class MempoolTxsV3(MempoolTxsV2):
                 tx['height'] = data['height']
                 tx['timestamp_date'] = data['time']
                 await gather(*map(update_inputs, tx['vin']))
-                self._result_queue.put_nowait(dumps(tx))
+            self._result_queue.put_nowait(dumps(tx))
 
         sem = Semaphore(3)
         async with Rest(endpoint=self.endpoint) as rest:
             tasks = (create_task(task(txid, data)) for txid, data in (await rest.get_mempool(True)).items())
             await gather(*tasks)
-        self._result_queue.put_nowait(b'END')
+            self._result_queue.put_nowait(b'END')
+
+    def _get_raw_candidates(self) -> Iterator[Json]:
+        return Target._get_raw_candidates(self)  # pylint: disable=protected-access
