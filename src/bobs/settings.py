@@ -1,7 +1,7 @@
 """
 Module to handle settings file and object
 """
-
+from os.path import join
 from typing import Optional, cast
 
 from bobs.obs.criteria import CriterionField
@@ -117,12 +117,13 @@ class Settings(Schema):
         Deserialize Settings object from TOML file if found, else create one with
         BOBS_DEFAULT_SETTINGS.
         """
+        path = join(path, SETTINGS_FILENAME) if path else SETTINGS_FILENAME
         try:
-            with open(f'{path}/{SETTINGS_FILENAME}' if path else SETTINGS_FILENAME, 'r', encoding='utf-8') as file:
+            with open(path, 'r', encoding='utf-8') as file:
                 return cls.from_str(file.read())
         except FileNotFoundError as err:
             if force_exist:
                 raise err
-            with open(f'{path}/{SETTINGS_FILENAME}' if path else SETTINGS_FILENAME, 'w', encoding='utf-8') as file:
+            with open(path, 'w', encoding='utf-8') as file:
                 file.write(BOBS_DEFAULT_SETTINGS)
                 return cls.from_default()
